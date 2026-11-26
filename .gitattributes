@@ -1,0 +1,7 @@
+# Preserve recovered source bytes and original compressed blueprint assets.
+.gitattributes text eol=lf
+dist/*.cs -text
+dist/*.zip binary
+*.sbc binary
+*.png binary
+*.md text eol=lf
