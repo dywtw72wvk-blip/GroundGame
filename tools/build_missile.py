@@ -42,7 +42,7 @@ def main():
     bp.set('{'+XSI+'}type','MyObjectBuilder_ShipBlueprintDefinition')
     add(bp,'Id',Type='MyObjectBuilder_ShipBlueprintDefinition',Subtype=NAME)
     add(bp,'DisplayName','GroundGame')
-    add(bp,'Description','Topdown 0.2: inline battery and prewired remote. Control Remote; page 1: 1 CHECK, 2 SCAN (no launch), 3 TEST (disarmed), 4 LAUNCH (live), 5/9 ABORT, 6 nose camera, 7 down camera, 8 STATUS. Enemy-owned grid within 600m and clear view required. Launch acquires automatically. Re-paste this version for the new layout and toolbar. Live flight acceptance pending.')
+    add(bp,'Description','Topdown 0.3: camera raycast search, inline battery, exterior START 10s and ABORT buttons. Remote page 1: 1 CHECK, 2 SCAN, 3 TEST 10s, 4 LAUNCH 10s, 5/9 ABORT, 6 AIM, 7 down, 8 LOCK camera centerline. Camera sweeps reach 750m, require charge and can miss small targets between rays. Live flight acceptance pending.')
     grid = add(add(bp,'CubeGrids'),'CubeGrid')
     add(grid,'EntityId',0)
     add(grid,'PersistentFlags','CastShadows InScene')
@@ -92,55 +92,52 @@ def main():
     # Inline battery: 3 x 2 x 3 cells inside the 5 x 5 tank cross-section.
     block('SmallBlockBatteryBlock',(-1,13,-1),'Battery',CurrentStoredPower=1.0,ChargeMode=0)
     # A connected deck supports the radar turret. Components mount to the tank.
-    special = {(1,0),(-1,0),(0,1),(-2,-2),(-2,2),(2,-2),(2,2)}
+    special = {(0,0),(1,0),(-1,0),(0,1),(-2,-2),(-2,2),(2,-2),(2,2)}
     for x,z in itertools.product(range(-2,3),repeat=2):
         if (x,z) not in special: block('SmallBlockArmorBlock',(x,15,z))
     computer = block('SmallProgrammableBlock',(1,15,0),'Computer','Down','Backward',Program=body,Storage='')
     block('SmallBlockGyro',(-1,15,0),'Gyro')
     remote = block('SmallBlockRemoteControl',(0,15,1),'Remote','Up','Backward',DampenersEnabled='true',AutoPilotEnabled='false')
+    timer = block('TimerBlockSmall',(0,15,0),'Launch timer',Delay=10000,CurrentTime=0,IsCountingDown='false',JustTriggered='false',Silent='false')
     for x,z in [(-2,-2),(-2,2),(2,-2),(2,2)]:
         block('SmallWarhead',(x,15,z),'Warhead',IsArmed='false',IsCountingDown='false',CountdownMs=10000)
-    turret = block('SmallGatlingTurret',(-2,16,-2),'Radar',Range=600,EnableIdleRotation='true',IsShooting='false')
-    flags = add(turret,'Flags')
-    for key in ['Meteors','Missiles','Characters','Neutrals','Friends','SmallGrids','LargeGrids','Stations','Enemies']:
-        add(flags,'Target'+key,str(key in ['SmallGrids','LargeGrids','Stations','Enemies']).lower())
-    inventory = add(turret,'Inventory')
-    item = add(add(inventory,'Items'),'MyObjectBuilder_InventoryItem')
-    add(item,'Amount',20)
-    content = add(item,'PhysicalContent'); content.set('{'+XSI+'}type','MyObjectBuilder_AmmoMagazine')
-    add(content,'SubtypeName','NATO_25x184mm'); add(item,'ItemId',0)
-    add(inventory,'nextItemId',1)
     camera_blocks = {}
     for p,f,u in [((3,10,1),'Right','Up'),((-3,10,1),'Left','Up'),((1,10,-3),'Forward','Up'),
                   ((1,10,3),'Backward','Up'),((2,2,0),'Down','Backward')]:
         camera_blocks[f] = block('SmallCameraBlock',p,'Camera '+f,f,u)
-    block('SmallBlockArmorBlock',(3,15,2))
-    nose_camera = block('SmallCameraBlock',(3,16,2),'Camera nose','Up','Forward')
-    block('SmallBlockArmorBlock',(3,15,-2))
-    block('SmallBlockArmorBlock',(3,15,-3))
-    block('SmallBlockRadioAntenna',(3,16,-3),'Antenna',BroadcastRadius=5000,EnableBroadcasting='true')
+    nose_camera = block('SmallCameraBlock',(0,16,0),'Camera nose','Up','Forward')
+    block('SmallBlockRadioAntenna',(0,16,1),'Antenna',BroadcastRadius=5000,EnableBroadcasting='true')
+    start_panel = block('ButtonPanelSmall',(-3,3,0),'START 10s','Forward','Left',AnyoneCanUse='false')
+    abort_panel = block('ButtonPanelSmall',(-3,4,0),'ABORT','Forward','Left',AnyoneCanUse='false')
+    block('SmallBlockSmallLight',(-3,6,0),'Countdown lamp','Left','Up')
     # Explicit entity IDs let the game's blueprint remapper retain toolbar links.
     toolbar = add(remote,'Toolbar')
     add(toolbar,'ToolbarType','Ship')
     add(toolbar,'SelectedSlot').set('{'+XSI+'}nil','true')
     slots = add(toolbar,'Slots')
     gamepad = add(toolbar,'SlotsGamepad')
-    def button(parent, index, target, action='Run', argument=None):
+    def button(parent, index, target, action='Run', argument=None, label=None):
         slot = add(parent,'Slot'); add(slot,'Index',index); add(slot,'Item')
         data = add(slot,'Data'); data.set('{'+XSI+'}type','MyObjectBuilder_ToolbarItemTerminalBlock')
         add(data,'Action',action)
-        add(data,'CustomIconTitle',argument if argument is not None else ('NOSE' if target is nose_camera else 'DOWN'))
+        add(data,'CustomIconTitle',label or (argument if argument is not None else ('NOSE' if target is nose_camera else 'DOWN')))
         if argument is not None:
             parameter = add(add(data,'Parameters'),'MyObjectBuilder_ToolbarItemActionParameter')
             add(parameter,'TypeCode','String'); add(parameter,'Value',argument)
         add(data,'BlockEntityId',target.findtext('EntityId'))
-    commands = {0:'CHECK',1:'SCAN',2:'TEST',3:'LAUNCH',4:'ABORT',7:'STATUS',8:'ABORT'}
-    for index,command in commands.items(): button(slots,index,computer,argument=command)
-    button(slots,5,nose_camera,'View'); button(slots,6,camera_blocks['Down'],'View')
-    for index,command in {0:'CHECK',1:'SCAN',2:'TEST',3:'ABORT',4:'LAUNCH',7:'ABORT'}.items():
-        button(gamepad,index,computer,argument=command)
-    button(gamepad,5,nose_camera,'View'); button(gamepad,6,camera_blocks['Down'],'View')
-    add(remote,'CustomData','GroundGame Topdown 0.2\nKeyboard page 1: 1 CHECK | 2 SCAN | 3 TEST (disarmed) | 4 LAUNCH (live) | 5 ABORT | 6 nose camera | 7 down camera | 8 STATUS | 9 ABORT\nSCAN does not launch. Enemy-owned grid within 600m and line of sight required. LAUNCH searches automatically; no manual target lock needed. Read Computer Detailed Info for contacts and phase.\nGamepad bank 1: Up CHECK, Left SCAN, Right TEST, Down ABORT. Bank 2: Up LAUNCH, Left nose camera, Right down camera, Down ABORT.')
+    commands = {0:'CHECK',1:'SCAN',2:'COUNTDOWN TEST',3:'COUNTDOWN',4:'ABORT',7:'LOCK',8:'ABORT'}
+    for index,command in commands.items():
+        button(slots,index,computer,argument=command,label={2:'TEST 10s',3:'LAUNCH 10s'}.get(index))
+    button(slots,5,camera_blocks['Forward'],'View',label='AIM'); button(slots,6,camera_blocks['Down'],'View')
+    for index,command in {0:'CHECK',1:'SCAN',2:'COUNTDOWN TEST',3:'ABORT',4:'COUNTDOWN',7:'ABORT',8:'LOCK',9:'STATUS',10:'SCAN',11:'ABORT'}.items():
+        button(gamepad,index,computer,argument=command,label={2:'TEST 10s',4:'LAUNCH 10s'}.get(index))
+    button(gamepad,5,camera_blocks['Forward'],'View',label='AIM'); button(gamepad,6,camera_blocks['Down'],'View')
+    for owner,arg,label in [(timer,'IGNITE','IGNITE'),(start_panel,'COUNTDOWN','LAUNCH IN 10s'),(abort_panel,'ABORT','ABORT / CANCEL')]:
+        bar=add(owner,'Toolbar'); add(bar,'ToolbarType','ButtonPanel')
+        add(bar,'SelectedSlot').set('{'+XSI+'}nil','true')
+        button(add(bar,'Slots'),0,computer,argument=arg,label=label)
+        add(bar,'SlotsGamepad')
+    add(remote,'CustomData','GroundGame Topdown 0.3\nPage 1: 1 CHECK | 2 camera SCAN | 3 TEST 10s | 4 live LAUNCH 10s | 5 ABORT | 6 AIM side camera | 7 down camera | 8 LOCK camera centerline | 9 ABORT.\nExterior START begins a 10 second timer; ABORT cancels it. Flashing amber lamp means countdown. Camera scan has a 750m range budget and thin rays can miss small ships. LOCK uses an active camera, or the Forward side camera. Enemy grids only.\nGamepad bank 1: Up CHECK, Left SCAN, Right TEST 10s, Down ABORT. Bank 2: Up LAUNCH 10s, Left AIM camera, Right down camera, Down ABORT. Bank 3: Up LOCK, Left STATUS, Right SCAN, Down ABORT.')
     add(grid,'DisplayName',NAME); add(grid,'IsStatic','false')
     add(grid,'DampenersEnabled','true')
     add(grid,'LinearVelocity',x=0,y=0,z=0); add(grid,'AngularVelocity',x=0,y=0,z=0)

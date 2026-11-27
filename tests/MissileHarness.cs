@@ -53,7 +53,9 @@ public class Harness
     public static IMyProgrammableBlock Me;
     public static string Saved = "";
     static List<object> blocks;
-    static Proxy remote, gyro, warhead, turret;
+    static Proxy remote, gyro, warhead, timer, lamp;
+    static List<Proxy> sensors;
+    static bool timerRunning;
     static List<Proxy> engines;
     static Vector3D position, velocity;
     static MyDetectedEntityInfo contact;
@@ -83,6 +85,7 @@ public class Harness
     static void Setup()
     {
         blocks = new List<object>(); engines = new List<Proxy>();
+        sensors = new List<Proxy>(); timerRunning = false;
         contact = new MyDetectedEntityInfo(); position = velocity = Vector3D.Zero; detonations = 0;
         var cp = new Proxy(typeof(IMyCubeGrid)); cp.Values["EntityId"] = 1L;
         cube = cp.As<IMyCubeGrid>();
@@ -110,8 +113,28 @@ public class Harness
         gyro = Block<IMyGyro>("Gyro");
         warhead = Block<IMyWarhead>("Warhead");
         warhead.Method = (n,a) => { if(n=="Detonate")detonations++;return null; };
-        turret = Block<IMyLargeTurretBase>("Radar");
-        turret.Method = (n,a) => n=="GetTargetedEntity" ? (object)contact : null;
+        foreach(Vector3D direction in new[]{Vector3D.Up,Vector3D.Down,Vector3D.Left,Vector3D.Right,Vector3D.Forward,Vector3D.Backward})
+        {
+            var camera=Block<IMyCameraBlock>(direction==Vector3D.Forward ? "Camera Forward" : "Camera "+sensors.Count);
+            camera.Values["EntityId"]=100L+sensors.Count;
+            camera.Values["WorldMatrix"]=MatrixD.CreateWorld(Vector3D.Zero,direction,Vector3D.CalculatePerpendicularVector(direction));
+            camera.Values["RaycastDistanceLimit"]=-1d; camera.Values["RaycastConeLimit"]=45f;
+            camera.Values["Ready"]=true; camera.Values["Calls"]=0;
+            camera.Method=(n,a)=>{
+                if(n=="GetPosition")return position;
+                if(n=="CanScan"){
+                    if(!(bool)camera.Values["Ready"])return false;
+                    if(a[0] is Vector3D){var delta=(Vector3D)a[0]-position;return delta.LengthSquared()>0.1 && Vector3D.Dot(Vector3D.Normalize(delta),direction)>0.7;}
+                    return true;
+                }
+                if(n=="Raycast"){camera.Values["Calls"]=(int)camera.Values["Calls"]+1;camera.Values["LastRay"]=a;return contact;}
+                return null;
+            };
+            sensors.Add(camera);
+        }
+        timer=Block<IMyTimerBlock>("Launch timer");
+        timer.Method=(n,a)=>{if(n=="StartCountdown")timerRunning=true;if(n=="StopCountdown")timerRunning=false;return null;};
+        lamp=Block<IMyLightingBlock>("Countdown lamp");
         var gs = new Proxy(typeof(IMyGridTerminalSystem));
         gs.Method = (n,a) => {
             if(n=="GetBlocksOfType")
@@ -187,6 +210,34 @@ public class Harness
         Assert(((string)Field("note")).Contains("remote") && !Armed(),"missing remote after passive lock reports fault without crash");
         Saved="flight"; Setup(); Saved="";
         Assert(Phase()=="Idle" && !Armed(),"reload cancels active flight");
+        Setup(); foreach(var c in sensors)c.Values["Ready"]=false;
+        contact=Enemy(MyRelationsBetweenPlayerAndBlock.Enemies); Command("SCAN");
+        Assert((int)Field("rayCount")==0 && (long)Field("targetId")==0,"uncharged cameras do not raycast or invent targets");
+        foreach(var c in sensors)c.Values["Ready"]=true; Step(1);
+        Assert((long)Field("targetId")==55,"camera-only sweep acquires after charging");
+        Setup(); Command("SCAN"); Step(12);
+        Assert(sensors.TrueForAll(c=>(int)c.Values["Calls"]>0),"sweep rotates fairly through every camera");
+        Setup(); sensors[3].Values["IsActive"]=true;contact=Enemy(MyRelationsBetweenPlayerAndBlock.Enemies);Command("LOCK");
+        Assert((long)Field("targetId")==55 && (int)sensors[3].Values["Calls"]==1 && Phase()=="Idle","LOCK uses active camera without launch");
+        var ray=(object[])sensors[3].Values["LastRay"];
+        Assert(Convert.ToDouble(ray[1])==0 && Convert.ToDouble(ray[2])==0,"LOCK casts the camera centerline");
+        Setup(); Command("COUNTDOWN");
+        Assert(Phase()=="Countdown" && timerRunning && !Armed(),"exterior command starts real timer with disarmed payload");
+        Step(12);
+        Assert(Phase()=="Countdown" && engines.TrueForAll(e=>(float)e.Values["ThrustOverridePercentage"]==0),"countdown never applies launch thrust");
+        Assert((float)lamp.Values["BlinkIntervalSeconds"]==1,"countdown flashes the exterior lamp");
+        Command("IGNITE"); Assert(Phase()=="Countdown","early timer trigger cannot bypass countdown");
+        Command("ABORT"); Assert(!timerRunning && Phase()=="Abort","abort stops native launch timer");
+        Step(70);Command("IGNITE");Assert(Phase()=="Abort","cancelled countdown cannot launch from a late callback");
+        Setup();Command("COUNTDOWN");Step(61);Command("IGNITE");
+        Assert(Phase()=="Boost" && !timerRunning,"completed native timer action launches and clears countdown");
+        Setup();Command("COUNTDOWN TEST");Step(61);Command("IGNITE");
+        Assert(Phase()=="Boost" && (bool)Field("dryRun") && !Armed(),"test countdown preserves disarmed test mode");
+        Setup();Command("COUNTDOWN");timer.Values["IsWorking"]=false;Step(1);
+        Assert(Phase()=="Abort" && !timerRunning,"timer power failure cancels launch");
+        Setup();contact=Enemy(MyRelationsBetweenPlayerAndBlock.Enemies);Command("SCAN");Command("COUNTDOWN");
+        contact=new MyDetectedEntityInfo();Step(15);
+        Assert(((string)remote.Values["CustomName"]).Contains("NO LOCK"),"countdown never displays a stale camera report as a fresh lock");
         Console.WriteLine(checks+" controller checks passed; no physics simulation performed.");
     }
 }

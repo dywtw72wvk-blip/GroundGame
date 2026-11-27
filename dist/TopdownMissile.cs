@@ -1,21 +1,26 @@
 const string Tag = "[GG-MISSILE]";
 const double SearchHeight = 200, SearchRadius = 650, SearchSpeed = 35;
 const double AttackHeight = 180, DiveSpeed = 80, TrackTimeout = 2;
-enum Phase { Idle, Boost, Search, Overhead, Dive, Abort }
+const double CameraRange = 750, LaunchDelay = 10;
+enum Phase { Idle, Countdown, Boost, Search, Overhead, Dive, Abort }
 Phase phase = Phase.Idle;
 IMyRemoteControl remote;
 readonly List<IMyThrust> thrust = new List<IMyThrust>();
 readonly List<IMyGyro> gyros = new List<IMyGyro>();
 readonly List<IMyWarhead> warheads = new List<IMyWarhead>();
-readonly List<IMyLargeTurretBase> turrets = new List<IMyLargeTurretBase>();
 readonly List<IMyCameraBlock> cameras = new List<IMyCameraBlock>();
+readonly List<IMyTimerBlock> timers = new List<IMyTimerBlock>();
+readonly List<IMyLightingBlock> lights = new List<IMyLightingBlock>();
+readonly List<int> cameraSteps = new List<int>();
 readonly List<IMyGasTank> tanks = new List<IMyGasTank>();
 readonly List<IMyBatteryBlock> batteries = new List<IMyBatteryBlock>();
 Vector3D launch, up, east, north, target, targetVelocity;
 BoundingBoxD targetBox;
 long targetId;
 double elapsed, age = 999, phaseTime, scanClock, searchAngle, searchRadius = 60;
-int scanIndex;
+int cameraCursor, rayCount;
+double countdownLeft;
+Vector3D targetOffset;
 string note = "Run CHECK, then LAUNCH. ABORT releases control.";
 string targetName = "none", acquisition = "Press SCAN to check visible contacts without launching.";
 bool dryRun;
@@ -40,11 +45,16 @@ void FindBlocks()
     GridTerminalSystem.GetBlocksOfType(thrust, b => Own(b));
     GridTerminalSystem.GetBlocksOfType(gyros, b => Own(b));
     GridTerminalSystem.GetBlocksOfType(warheads, b => Own(b));
-    GridTerminalSystem.GetBlocksOfType(turrets, b => Own(b));
     GridTerminalSystem.GetBlocksOfType(cameras, b => Own(b));
+    GridTerminalSystem.GetBlocksOfType(timers, b => Own(b));
+    GridTerminalSystem.GetBlocksOfType(lights, b => Own(b));
     GridTerminalSystem.GetBlocksOfType(tanks, b => Own(b));
     GridTerminalSystem.GetBlocksOfType(batteries, b => Own(b));
     foreach (var c in cameras) c.EnableRaycast = true;
+    while (cameraSteps.Count < cameras.Count) cameraSteps.Add(0);
+    var panels = new List<IMyButtonPanel>();
+    GridTerminalSystem.GetBlocksOfType(panels, b => Own(b));
+    foreach (var panel in panels) panel.SetCustomButtonName(0, panel.CustomName.Contains("START") ? "LAUNCH IN 10s" : "ABORT / CANCEL");
 }
 
 bool Own(IMyTerminalBlock b)
@@ -54,6 +64,21 @@ public void Main(string argument, UpdateType source)
 {
     string cmd = (argument ?? "").Trim().ToUpperInvariant();
     if (cmd == "ABORT" || cmd == "STOP") { Abort("Operator abort"); }
+    else if (cmd == "COUNTDOWN" || cmd == "COUNTDOWN TEST")
+    {
+        if (!Active()) BeginCountdown(cmd == "COUNTDOWN TEST");
+        else note = "Sequence already active; ABORT cancels.";
+    }
+    else if (cmd == "IGNITE")
+    {
+        if (phase == Phase.Countdown && countdownLeft <= 0.5) Start(dryRun);
+        else note = "Ignored IGNITE: no completed launch countdown.";
+    }
+    else if (cmd == "LOCK")
+    {
+        if (!Active()) LockCamera();
+        else note = "Acquisition runs automatically during flight/countdown.";
+    }
     else if (cmd == "CHECK")
     {
         if (Active()) note = "Abort before CHECK.";
@@ -70,7 +95,7 @@ public void Main(string argument, UpdateType source)
             {
                 watchContacts = true;
                 up = Unit(-remote.GetNaturalGravity(), remote.WorldMatrix.Forward);
-                acquisition = "No radar contact: enemy-owned grid within 600m and clear view required.";
+                acquisition = "Camera sweep: enemy grid <=750m; rays need charge and line of sight.";
                 scanClock = 1;
                 Acquire();
                 note = "Passive SCAN: watching contacts without launch. LAUNCH searches automatically.";
@@ -86,7 +111,8 @@ public void Main(string argument, UpdateType source)
     if ((source & (UpdateType.Update1 | UpdateType.Update10 | UpdateType.Update100)) != 0)
     {
         double dt = Math.Max(0.001, Math.Min(0.5, Runtime.TimeSinceLastRun.TotalSeconds));
-        if (Active()) Tick(dt);
+        if (phase == Phase.Countdown) TickCountdown(dt);
+        else if (Active()) Tick(dt);
         else if (watchContacts && remote != null && remote.IsWorking)
         {
             age += dt; scanClock += dt;
@@ -104,8 +130,8 @@ string Preflight()
     if (remote == null) return "Need exactly one tagged remote on this grid.";
     if (Me.CubeGrid.IsStatic) return "Detach from the static launch grid first.";
     if (!remote.IsWorking) return "Remote has no working power.";
-    if (thrust.Count < 6 || gyros.Count == 0 || turrets.Count == 0 || warheads.Count == 0)
-        return "Need tagged thrust in six axes, gyro, turret and warhead.";
+    if (thrust.Count < 6 || gyros.Count == 0 || cameras.Count == 0 || warheads.Count == 0)
+        return "Need tagged thrust in six axes, gyro, camera and warhead.";
     if (remote.GetNaturalGravity().Length() < 0.5) return "Planetary gravity required.";
     foreach (var b in batteries) if (!b.IsWorking || b.CurrentStoredPower < 0.02)
         return "Charge the batteries first.";
@@ -123,9 +149,31 @@ string Preflight()
         remote.WorldMatrix.Left, remote.WorldMatrix.Right, remote.WorldMatrix.Up, remote.WorldMatrix.Down };
     foreach (var axis in axes)
         if (Capacity(axis) < mass * 3) return "Insufficient thrust in a body axis.";
-    bool radar = false;
-    foreach (var t in turrets) if (t.IsWorking) radar = true;
-    return radar ? "READY" : "Targeting turret is offline.";
+    foreach (var c in cameras) if (c.IsWorking) return "READY";
+    return "No working raycast camera.";
+}
+
+void BeginCountdown(bool test)
+{
+    FindBlocks(); SafeStop();
+    string check = Preflight();
+    if (check != "READY") { note = check; return; }
+    if (timers.Count != 1 || !timers[0].IsWorking) { note = "Need one working tagged launch timer."; return; }
+    dryRun = test; countdownLeft = LaunchDelay;
+    up = -Vector3D.Normalize(remote.GetNaturalGravity());
+    timers[0].TriggerDelay = (float)LaunchDelay;
+    SetPhase(Phase.Countdown, "Launch countdown started. ABORT cancels.");
+    timers[0].StartCountdown();
+}
+
+void TickCountdown(double dt)
+{
+    countdownLeft -= dt; age += dt; scanClock += dt;
+    Disarm();
+    if (remote == null || !remote.IsWorking || timers.Count != 1 || !timers[0].IsWorking)
+    { Abort("Countdown hardware offline"); return; }
+    Acquire();
+    if (countdownLeft < -2) Abort("Timer expired without launch action; check timer toolbar");
 }
 
 double Capacity(Vector3D direction)
@@ -147,7 +195,8 @@ void Start(bool test)
     up = -Vector3D.Normalize(remote.GetNaturalGravity());
     east = Vector3D.CalculatePerpendicularVector(up);
     north = Vector3D.Cross(up, east);
-    targetId = 0; age = 999; elapsed = phaseTime = scanClock = searchAngle = 0;
+    if (age > TrackTimeout) { targetId = 0; age = 999; }
+    elapsed = phaseTime = scanClock = searchAngle = 0;
     searchRadius = 60;
     foreach (var b in batteries) b.ChargeMode = ChargeMode.Auto;
     var connectors = new List<IMyShipConnector>();
@@ -251,35 +300,71 @@ void Tick(double dt)
 
 void Acquire()
 {
-    acquisition = "No turret contact: needs enemy grid <=600m and line of sight.";
-    foreach (var turret in turrets)
-    {
-        if (!turret.IsWorking) continue;
-        var hit = turret.GetTargetedEntity();
-        if (!hit.IsEmpty()) acquisition = hit.Relationship + " " + hit.Type + ": " + hit.Name;
-        Consider(hit);
-    }
-    if (scanClock < 0.2) return;
+    if (scanClock < 0.15 || cameras.Count == 0) return;
     scanClock = 0;
-    foreach (var camera in cameras)
+    int attempts = cameras.Count, fired = 0;
+    acquisition = "Camera sweep: charging or no ray hit.";
+    while (attempts-- > 0 && fired < 3)
     {
+        int index = cameraCursor++ % cameras.Count;
+        var camera = cameras[index];
         if (!camera.IsWorking) continue;
-        if (targetId != 0 && age < TrackTimeout)
+        MyDetectedEntityInfo hit;
+        if (targetId != 0 && age < 6)
         {
-            Vector3D point = target + targetVelocity * age;
-            Vector3D delta = point - camera.GetPosition();
-            if (delta.LengthSquared() > 1 && Vector3D.Dot(Unit(delta, up), camera.WorldMatrix.Forward) > 0.72 && camera.CanScan(point))
-            { Consider(camera.Raycast(point)); break; }
+            Vector3D point = target + targetOffset + targetVelocity * age;
+            if (!camera.CanScan(point)) continue;
+            hit = camera.Raycast(point);
         }
-        else if (camera.CanScan(500))
+        else
         {
-            // Sparse supplemental search; the turret is the primary detector.
-            float pitch = (scanIndex % 3 - 1) * 20;
-            float yaw = ((scanIndex / 3) % 3 - 1) * 20;
-            Consider(camera.Raycast(500, pitch, yaw)); scanIndex++;
-            break;
+            double range = camera.RaycastDistanceLimit < 0 ? CameraRange : Math.Min(CameraRange, camera.RaycastDistanceLimit);
+            if (range < 1 || !camera.CanScan(range)) continue;
+            float pitch, yaw;
+            SweepAngles(cameraSteps[index]++, out pitch, out yaw);
+            float cone = Math.Max(0, Math.Min(40, camera.RaycastConeLimit - 1));
+            hit = camera.Raycast(range, pitch * cone / 40, yaw * cone / 40);
         }
+        fired++; rayCount++;
+        if (!hit.IsEmpty()) acquisition = "Camera: " + hit.Relationship + " " + hit.Type + " " + hit.Name;
+        Consider(hit);
+        if (age == 0) break;
     }
+}
+
+static void SweepAngles(int step, out float pitch, out float yaw)
+{
+    int n = step % 289, x = 0, y = 0;
+    if (n > 0)
+    {
+        int ring = (int)Math.Ceiling((Math.Sqrt(n + 1) - 1) / 2);
+        int side = 2 * ring, offset = (2 * ring + 1) * (2 * ring + 1) - 1 - n;
+        if (offset < side) { x = ring - offset; y = -ring; }
+        else if (offset < 2 * side) { x = -ring; y = -ring + offset - side; }
+        else if (offset < 3 * side) { x = -ring + offset - 2 * side; y = ring; }
+        else { x = ring; y = ring - offset + 3 * side; }
+    }
+    float shift = (step / 289) % 2 == 0 ? 0 : 2.5f;
+    pitch = Math.Max(-40, Math.Min(40, y * 5 + shift));
+    yaw = Math.Max(-40, Math.Min(40, x * 5 + shift));
+}
+
+void LockCamera()
+{
+    FindBlocks(); SafeStop();
+    if (remote == null || cameras.Count == 0) { note = "LOCK requires a remote and camera."; return; }
+    IMyCameraBlock chosen = null;
+    foreach (var c in cameras) if (c.IsActive) { chosen = c; break; }
+    if (chosen == null) foreach (var c in cameras) if (c.CustomName.Contains("Camera Forward")) { chosen = c; break; }
+    if (chosen == null) chosen = cameras[0];
+    double range = chosen.RaycastDistanceLimit < 0 ? CameraRange : Math.Min(CameraRange, chosen.RaycastDistanceLimit);
+    if (!chosen.IsWorking || !chosen.CanScan(range)) { note = "LOCK camera charging/offline. Try again shortly."; return; }
+    up = Unit(-remote.GetNaturalGravity(), remote.WorldMatrix.Forward);
+    targetId = 0; age = 999; watchContacts = true;
+    var hit = chosen.Raycast(range, 0, 0); rayCount++;
+    acquisition = hit.IsEmpty() ? "LOCK ray missed; sweep continues." : "Camera: " + hit.Relationship + " " + hit.Name;
+    Consider(hit);
+    note = targetId == 0 ? "No eligible enemy on camera centerline." : "Camera locked " + targetName;
 }
 
 void Consider(MyDetectedEntityInfo hit)
@@ -293,6 +378,7 @@ void Consider(MyDetectedEntityInfo hit)
     if (Vector3D.Dot(hit.Position - remote.GetPosition(), up) > 60) return;
     targetId = hit.EntityId;
     targetName = hit.Name;
+    targetOffset = (hit.HitPosition ?? hit.Position) - hit.Position;
     target = hit.Position; targetVelocity = hit.Velocity; targetBox = hit.BoundingBox; age = 0;
 }
 
@@ -331,6 +417,7 @@ void Aim(Vector3D nose)
 void Disarm() { foreach (var w in warheads) { w.StopCountdown(); w.IsArmed = false; } }
 void SafeStop()
 {
+    foreach (var timer in timers) timer.StopCountdown();
     foreach (var t in thrust) t.ThrustOverridePercentage = 0;
     foreach (var g in gyros) { g.GyroOverride = false; g.Pitch = g.Yaw = g.Roll = 0; }
     Disarm();
@@ -347,20 +434,28 @@ static Vector3D GuidanceVelocity(Vector3D error, double speed, Vector3D vertical
 
 void Report()
 {
-    string contact = targetId == 0 || remote == null ? "NO ENEMY LOCK" : "ENEMY: " + targetName + " | " + Vector3D.Distance(remote.GetPosition(), target).ToString("0") + "m";
-    string text = "GroundGame Topdown 0.2\n" + phase + (watchContacts ? " | PASSIVE SCAN" : "") + (dryRun ? " | TEST: DISARMED" : "") +
+    bool fresh = targetId != 0 && age <= TrackTimeout;
+    string contact = !fresh || remote == null ? "NO ENEMY LOCK" : "ENEMY: " + targetName + " | " + Vector3D.Distance(remote.GetPosition(), target).ToString("0") + "m";
+    string text = "GroundGame Topdown 0.3\n" + phase + (phase == Phase.Countdown ? " T-" + Math.Ceiling(Math.Max(0,countdownLeft)) + "s" : "") + (watchContacts ? " | PASSIVE SCAN" : "") + (dryRun ? " | TEST: DISARMED" : "") +
         "\n" + note + "\nFlight " + elapsed.ToString("0") + "s | track age " + age.ToString("0.0") +
-        "s\n" + contact + "\nRadar limit 600m | " + acquisition +
+        "s\n" + contact + "\nCamera rays " + rayCount + " | 750m sweep | " + acquisition +
         "\nThrusters " + thrust.Count + " | gyros " + gyros.Count +
-        "\nRemote page 1: 1 CHECK  2 SCAN\n3 TEST  4 LAUNCH  5 ABORT\n6 Nose  7 Down  8 STATUS  9 ABORT";
+        "\nRemote page 1: 1 CHECK  2 SCAN\n3 TEST 10s  4 LAUNCH 10s  5 ABORT\n6 AIM  7 Down  8 LOCK  9 ABORT";
     Echo(text);
     if (remote != null)
     {
         string shortName = targetName.Replace('\n',' ').Replace('\r',' ');
         if (shortName.Length > 24) shortName = shortName.Substring(0,24);
         string remoteTitle = Tag + " Remote | " + (watchContacts ? "SCAN" : phase.ToString()) +
-            (targetId == 0 ? " | NO LOCK" : " | " + shortName);
+            (!fresh ? " | NO LOCK" : " | " + shortName);
         if (remote.CustomName != remoteTitle) remote.CustomName = remoteTitle;
+    }
+    foreach (var light in lights)
+    {
+        light.Enabled = true;
+        light.Color = phase == Phase.Countdown ? new Color(255,170,0) : (Active() ? Color.Red : (fresh ? Color.Green : Color.Blue));
+        light.BlinkIntervalSeconds = phase == Phase.Countdown ? 1 : 0;
+        light.BlinkLength = 50;
     }
     var surface = Me.GetSurface(0);
     surface.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
