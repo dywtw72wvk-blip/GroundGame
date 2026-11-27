@@ -42,7 +42,7 @@ def main():
     bp.set('{'+XSI+'}type','MyObjectBuilder_ShipBlueprintDefinition')
     add(bp,'Id',Type='MyObjectBuilder_ShipBlueprintDefinition',Subtype=NAME)
     add(bp,'DisplayName','GroundGame')
-    add(bp,'Description','Planetary top-down missile prototype. Run TEST before LAUNCH. No live flight acceptance yet.')
+    add(bp,'Description','Topdown 0.2: inline battery and prewired remote. Control Remote; page 1: 1 CHECK, 2 SCAN (no launch), 3 TEST (disarmed), 4 LAUNCH (live), 5/9 ABORT, 6 nose camera, 7 down camera, 8 STATUS. Enemy-owned grid within 600m and clear view required. Launch acquires automatically. Re-paste this version for the new layout and toolbar. Live flight acceptance pending.')
     grid = add(add(bp,'CubeGrids'),'CubeGrid')
     add(grid,'EntityId',0)
     add(grid,'PersistentFlags','CastShadows InScene')
@@ -54,6 +54,7 @@ def main():
     blocks = add(grid,'CubeBlocks')
     occupied = {}
     manifest = []
+    entity_seed = 73000000000000000
     def block(sub, pos, name='', forward='Forward', up='Up', **fields):
         d = definitions[sub]
         typ = d.findtext('Id/TypeId')
@@ -70,6 +71,7 @@ def main():
         b = add(blocks,'MyObjectBuilder_CubeBlock')
         b.set('{'+XSI+'}type','MyObjectBuilder_'+typ)
         add(b,'SubtypeName',sub)
+        add(b,'EntityId',entity_seed + len(manifest) + 1)
         add(b,'Min',**dict(zip('xyz',pos)))
         add(b,'BlockOrientation',Forward=forward,Up=up)
         add(b,'ColorMaskHSV',x=0.58,y=-0.35,z=-0.2)
@@ -85,18 +87,20 @@ def main():
     for p,f in [((3,5,0),'Right'),((-3,5,0),'Left'),((0,5,3),'Backward'),((0,5,-3),'Forward')]:
         block('SmallBlockSmallHydrogenThrust',p,'Lateral '+f,f,ThrustOverride=0)
     for x,z in [(3,0),(-3,0),(0,3),(0,-3)]:
-        for y in range(10,13): block('SmallBlockConveyor',(x,y,z))
-        block('SmallBlockSmallHydrogenThrust',(x,13,z),'Retro '+str((x,z)),'Up','Forward',ThrustOverride=0)
+        for y in range(10,15): block('SmallBlockConveyor',(x,y,z))
+        block('SmallBlockSmallHydrogenThrust',(x,15,z),'Retro '+str((x,z)),'Up','Forward',ThrustOverride=0)
+    # Inline battery: 3 x 2 x 3 cells inside the 5 x 5 tank cross-section.
+    block('SmallBlockBatteryBlock',(-1,13,-1),'Battery',CurrentStoredPower=1.0,ChargeMode=0)
     # A connected deck supports the radar turret. Components mount to the tank.
     special = {(1,0),(-1,0),(0,1),(-2,-2),(-2,2),(2,-2),(2,2)}
     for x,z in itertools.product(range(-2,3),repeat=2):
-        if (x,z) not in special: block('SmallBlockArmorBlock',(x,13,z))
-    block('SmallProgrammableBlock',(1,13,0),'Computer','Down','Backward',Program=body,Storage='')
-    block('SmallBlockGyro',(-1,13,0),'Gyro')
-    block('SmallBlockRemoteControl',(0,13,1),'Remote','Up','Backward',DampenersEnabled='true',AutoPilotEnabled='false')
+        if (x,z) not in special: block('SmallBlockArmorBlock',(x,15,z))
+    computer = block('SmallProgrammableBlock',(1,15,0),'Computer','Down','Backward',Program=body,Storage='')
+    block('SmallBlockGyro',(-1,15,0),'Gyro')
+    remote = block('SmallBlockRemoteControl',(0,15,1),'Remote','Up','Backward',DampenersEnabled='true',AutoPilotEnabled='false')
     for x,z in [(-2,-2),(-2,2),(2,-2),(2,2)]:
-        block('SmallWarhead',(x,13,z),'Warhead',IsArmed='false',IsCountingDown='false',CountdownMs=10000)
-    turret = block('SmallGatlingTurret',(-2,14,-2),'Radar',Range=600,EnableIdleRotation='true',IsShooting='false')
+        block('SmallWarhead',(x,15,z),'Warhead',IsArmed='false',IsCountingDown='false',CountdownMs=10000)
+    turret = block('SmallGatlingTurret',(-2,16,-2),'Radar',Range=600,EnableIdleRotation='true',IsShooting='false')
     flags = add(turret,'Flags')
     for key in ['Meteors','Missiles','Characters','Neutrals','Friends','SmallGrids','LargeGrids','Stations','Enemies']:
         add(flags,'Target'+key,str(key in ['SmallGrids','LargeGrids','Stations','Enemies']).lower())
@@ -106,15 +110,37 @@ def main():
     content = add(item,'PhysicalContent'); content.set('{'+XSI+'}type','MyObjectBuilder_AmmoMagazine')
     add(content,'SubtypeName','NATO_25x184mm'); add(item,'ItemId',0)
     add(inventory,'nextItemId',1)
-    block('SmallBlockBatteryBlock',(-1,8,3),'Battery',CurrentStoredPower=1.0,ChargeMode=0)
+    camera_blocks = {}
     for p,f,u in [((3,10,1),'Right','Up'),((-3,10,1),'Left','Up'),((1,10,-3),'Forward','Up'),
                   ((1,10,3),'Backward','Up'),((2,2,0),'Down','Backward')]:
-        block('SmallCameraBlock',p,'Camera '+f,f,u)
-    block('SmallBlockArmorBlock',(3,13,2))
-    block('SmallCameraBlock',(3,14,2),'Camera nose','Up','Forward')
-    block('SmallBlockArmorBlock',(3,13,-2))
-    block('SmallBlockArmorBlock',(3,13,-3))
-    block('SmallBlockRadioAntenna',(3,14,-3),'Antenna',BroadcastRadius=5000,EnableBroadcasting='true')
+        camera_blocks[f] = block('SmallCameraBlock',p,'Camera '+f,f,u)
+    block('SmallBlockArmorBlock',(3,15,2))
+    nose_camera = block('SmallCameraBlock',(3,16,2),'Camera nose','Up','Forward')
+    block('SmallBlockArmorBlock',(3,15,-2))
+    block('SmallBlockArmorBlock',(3,15,-3))
+    block('SmallBlockRadioAntenna',(3,16,-3),'Antenna',BroadcastRadius=5000,EnableBroadcasting='true')
+    # Explicit entity IDs let the game's blueprint remapper retain toolbar links.
+    toolbar = add(remote,'Toolbar')
+    add(toolbar,'ToolbarType','Ship')
+    add(toolbar,'SelectedSlot').set('{'+XSI+'}nil','true')
+    slots = add(toolbar,'Slots')
+    gamepad = add(toolbar,'SlotsGamepad')
+    def button(parent, index, target, action='Run', argument=None):
+        slot = add(parent,'Slot'); add(slot,'Index',index); add(slot,'Item')
+        data = add(slot,'Data'); data.set('{'+XSI+'}type','MyObjectBuilder_ToolbarItemTerminalBlock')
+        add(data,'Action',action)
+        add(data,'CustomIconTitle',argument if argument is not None else ('NOSE' if target is nose_camera else 'DOWN'))
+        if argument is not None:
+            parameter = add(add(data,'Parameters'),'MyObjectBuilder_ToolbarItemActionParameter')
+            add(parameter,'TypeCode','String'); add(parameter,'Value',argument)
+        add(data,'BlockEntityId',target.findtext('EntityId'))
+    commands = {0:'CHECK',1:'SCAN',2:'TEST',3:'LAUNCH',4:'ABORT',7:'STATUS',8:'ABORT'}
+    for index,command in commands.items(): button(slots,index,computer,argument=command)
+    button(slots,5,nose_camera,'View'); button(slots,6,camera_blocks['Down'],'View')
+    for index,command in {0:'CHECK',1:'SCAN',2:'TEST',3:'ABORT',4:'LAUNCH',7:'ABORT'}.items():
+        button(gamepad,index,computer,argument=command)
+    button(gamepad,5,nose_camera,'View'); button(gamepad,6,camera_blocks['Down'],'View')
+    add(remote,'CustomData','GroundGame Topdown 0.2\nKeyboard page 1: 1 CHECK | 2 SCAN | 3 TEST (disarmed) | 4 LAUNCH (live) | 5 ABORT | 6 nose camera | 7 down camera | 8 STATUS | 9 ABORT\nSCAN does not launch. Enemy-owned grid within 600m and line of sight required. LAUNCH searches automatically; no manual target lock needed. Read Computer Detailed Info for contacts and phase.\nGamepad bank 1: Up CHECK, Left SCAN, Right TEST, Down ABORT. Bank 2: Up LAUNCH, Left nose camera, Right down camera, Down ABORT.')
     add(grid,'DisplayName',NAME); add(grid,'IsStatic','false')
     add(grid,'DampenersEnabled','true')
     add(grid,'LinearVelocity',x=0,y=0,z=0); add(grid,'AngularVelocity',x=0,y=0,z=0)
@@ -130,7 +156,7 @@ def main():
     # Gas routes: main engine + lower lateral engines touch tank face ports;
     # each retro is fed by its own three-cube conveyor riser from a side port.
     for x,z in [(3,0),(-3,0),(0,3),(0,-3)]:
-        assert all(occupied[(x,y,z)] == 'SmallBlockConveyor' for y in range(10,13))
+        assert all(occupied[(x,y,z)] == 'SmallBlockConveyor' for y in range(10,15))
     folder = ROOT/'blueprints'/NAME; folder.mkdir(exist_ok=True)
     ET.indent(root)
     ET.ElementTree(root).write(folder/'bp.sbc',encoding='utf-8',xml_declaration=True)

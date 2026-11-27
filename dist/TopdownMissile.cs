@@ -17,7 +17,9 @@ long targetId;
 double elapsed, age = 999, phaseTime, scanClock, searchAngle, searchRadius = 60;
 int scanIndex;
 string note = "Run CHECK, then LAUNCH. ABORT releases control.";
+string targetName = "none", acquisition = "Press SCAN to check visible contacts without launching.";
 bool dryRun;
+bool watchContacts;
 
 public Program()
 {
@@ -57,6 +59,24 @@ public void Main(string argument, UpdateType source)
         if (Active()) note = "Abort before CHECK.";
         else { FindBlocks(); SafeStop(); note = Preflight(); }
     }
+    else if (cmd == "SCAN")
+    {
+        if (Active()) note = "Acquisition runs automatically during flight.";
+        else
+        {
+            FindBlocks(); SafeStop(); targetId = 0; age = 999;
+            if (remote == null) note = "SCAN needs exactly one tagged remote.";
+            else
+            {
+                watchContacts = true;
+                up = Unit(-remote.GetNaturalGravity(), remote.WorldMatrix.Forward);
+                acquisition = "No radar contact: enemy-owned grid within 600m and clear view required.";
+                scanClock = 1;
+                Acquire();
+                note = "Passive SCAN: watching contacts without launch. LAUNCH searches automatically.";
+            }
+        }
+    }
     else if (cmd == "LAUNCH" || cmd == "TEST")
     {
         if (!Active()) Start(cmd == "TEST");
@@ -67,6 +87,12 @@ public void Main(string argument, UpdateType source)
     {
         double dt = Math.Max(0.001, Math.Min(0.5, Runtime.TimeSinceLastRun.TotalSeconds));
         if (Active()) Tick(dt);
+        else if (watchContacts && remote != null && remote.IsWorking)
+        {
+            age += dt; scanClock += dt;
+            Acquire();
+            if (age > TrackTimeout) targetId = 0;
+        }
     }
     Report();
 }
@@ -116,6 +142,7 @@ void Start(bool test)
     string check = Preflight();
     if (check != "READY") { note = check; return; }
     dryRun = test;
+    watchContacts = false;
     launch = remote.GetPosition();
     up = -Vector3D.Normalize(remote.GetNaturalGravity());
     east = Vector3D.CalculatePerpendicularVector(up);
@@ -224,10 +251,12 @@ void Tick(double dt)
 
 void Acquire()
 {
+    acquisition = "No turret contact: needs enemy grid <=600m and line of sight.";
     foreach (var turret in turrets)
     {
         if (!turret.IsWorking) continue;
         var hit = turret.GetTargetedEntity();
+        if (!hit.IsEmpty()) acquisition = hit.Relationship + " " + hit.Type + ": " + hit.Name;
         Consider(hit);
     }
     if (scanClock < 0.2) return;
@@ -263,6 +292,7 @@ void Consider(MyDetectedEntityInfo hit)
     if (targetId != 0 && age < TrackTimeout && hit.EntityId != targetId) return;
     if (Vector3D.Dot(hit.Position - remote.GetPosition(), up) > 60) return;
     targetId = hit.EntityId;
+    targetName = hit.Name;
     target = hit.Position; targetVelocity = hit.Velocity; targetBox = hit.BoundingBox; age = 0;
 }
 
@@ -306,7 +336,7 @@ void SafeStop()
     Disarm();
     if (remote != null) { remote.SetAutoPilotEnabled(false); remote.DampenersOverride = true; }
 }
-void Abort(string reason) { phase = Phase.Abort; note = reason; SafeStop(); Storage = ""; }
+void Abort(string reason) { phase = Phase.Abort; watchContacts = false; note = reason; SafeStop(); Storage = ""; }
 static Vector3D Reject(Vector3D v, Vector3D normal) { return v - normal * Vector3D.Dot(v, normal); }
 static Vector3D Unit(Vector3D v, Vector3D fallback) { return v.LengthSquared() < 0.000001 ? fallback : Vector3D.Normalize(v); }
 static Vector3D Limit(Vector3D v, double max) { return v.LengthSquared() <= max * max ? v : Unit(v, Vector3D.Zero) * max; }
@@ -317,11 +347,21 @@ static Vector3D GuidanceVelocity(Vector3D error, double speed, Vector3D vertical
 
 void Report()
 {
-    string text = "GroundGame Topdown 0.1\n" + phase + (dryRun ? " | TEST: DISARMED" : "") +
+    string contact = targetId == 0 || remote == null ? "NO ENEMY LOCK" : "ENEMY: " + targetName + " | " + Vector3D.Distance(remote.GetPosition(), target).ToString("0") + "m";
+    string text = "GroundGame Topdown 0.2\n" + phase + (watchContacts ? " | PASSIVE SCAN" : "") + (dryRun ? " | TEST: DISARMED" : "") +
         "\n" + note + "\nFlight " + elapsed.ToString("0") + "s | track age " + age.ToString("0.0") +
-        "s\nTarget " + targetId + "\nThrusters " + thrust.Count + " | gyros " + gyros.Count +
-        "\nCHECK / TEST / LAUNCH / ABORT";
+        "s\n" + contact + "\nRadar limit 600m | " + acquisition +
+        "\nThrusters " + thrust.Count + " | gyros " + gyros.Count +
+        "\nRemote page 1: 1 CHECK  2 SCAN\n3 TEST  4 LAUNCH  5 ABORT\n6 Nose  7 Down  8 STATUS  9 ABORT";
     Echo(text);
+    if (remote != null)
+    {
+        string shortName = targetName.Replace('\n',' ').Replace('\r',' ');
+        if (shortName.Length > 24) shortName = shortName.Substring(0,24);
+        string remoteTitle = Tag + " Remote | " + (watchContacts ? "SCAN" : phase.ToString()) +
+            (targetId == 0 ? " | NO LOCK" : " | " + shortName);
+        if (remote.CustomName != remoteTitle) remote.CustomName = remoteTitle;
+    }
     var surface = Me.GetSurface(0);
     surface.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
     surface.FontSize = 0.9f;

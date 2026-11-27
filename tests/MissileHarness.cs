@@ -143,6 +143,15 @@ public class Harness
     {
         Setup(); Assert(!Armed(),"startup disarms warheads");
         Command("CHECK"); Assert((string)Field("note")=="READY","six-axis preflight");
+        contact = Enemy(MyRelationsBetweenPlayerAndBlock.Friends); Command("SCAN");
+        Assert(Phase()=="Idle" && (long)Field("targetId")==0 && !Armed(),"prelaunch SCAN rejects friendly without launch");
+        contact = Enemy(MyRelationsBetweenPlayerAndBlock.Enemies); Step(1);
+        Assert(Phase()=="Idle" && (long)Field("targetId")==55 && !Armed(),"passive SCAN acquires enemy without launch");
+        Assert((string)Field("targetName")=="Test grid","acquired target has readable name");
+        Assert(((string)remote.Values["CustomName"]).Contains("SCAN | Test grid"),"remote name shows passive scan and enemy name");
+        contact = new MyDetectedEntityInfo(); Step(15);
+        Assert((long)Field("targetId")==0 && Phase()=="Idle","passive stale contact expires without flight");
+        Command("STATUS"); Assert(Phase()=="Idle" && !Armed(),"STATUS leaves flight and payload unchanged");
         Command("LAUNCH"); Assert(Phase()=="Boost","launch enters vertical boost");
         Step(1); Assert(!Armed(),"boost remains disarmed");
         position = new Vector3D(0,200,0); Step(1); Assert(Phase()=="Search","climb transitions into search");
@@ -173,6 +182,9 @@ public class Harness
         Assert(detonations==1,"fresh aligned terminal intercept detonates");
         Setup(); ToDive(false); contact=Enemy(MyRelationsBetweenPlayerAndBlock.Friends); Step(1);
         Assert(Phase()=="Search" && !Armed(),"relationship change cancels attack");
+        Setup(); contact=Enemy(MyRelationsBetweenPlayerAndBlock.Enemies); Command("SCAN");
+        blocks.RemoveAll(b=>b is IMyRemoteControl); Command("CHECK");
+        Assert(((string)Field("note")).Contains("remote") && !Armed(),"missing remote after passive lock reports fault without crash");
         Saved="flight"; Setup(); Saved="";
         Assert(Phase()=="Idle" && !Armed(),"reload cancels active flight");
         Console.WriteLine(checks+" controller checks passed; no physics simulation performed.");
