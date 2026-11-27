@@ -1,0 +1,959 @@
+<?xml version='1.0' encoding='utf-8'?>
+<Definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ShipBlueprints>
+    <ShipBlueprint xsi:type="MyObjectBuilder_ShipBlueprintDefinition">
+      <Id Type="MyObjectBuilder_ShipBlueprintDefinition" Subtype="[GG] Topdown Missile" />
+      <DisplayName>GroundGame</DisplayName>
+      <Description>Planetary top-down missile prototype. Run TEST before LAUNCH. No live flight acceptance yet.</Description>
+      <CubeGrids>
+        <CubeGrid>
+          <EntityId>0</EntityId>
+          <PersistentFlags>CastShadows InScene</PersistentFlags>
+          <PositionAndOrientation>
+            <Position x="0" y="0" z="0" />
+            <Forward x="0" y="0" z="-1" />
+            <Up x="0" y="1" z="0" />
+          </PositionAndOrientation>
+          <GridSizeEnum>Small</GridSizeEnum>
+          <CubeBlocks>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_OxygenTank">
+              <SubtypeName>SmallHydrogenTank</SubtypeName>
+              <Min x="-2" y="3" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Fuel A</CustomName>
+              <Enabled>true</Enabled>
+              <FilledRatio>1</FilledRatio>
+              <IsStockpiling>false</IsStockpiling>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_OxygenTank">
+              <SubtypeName>SmallHydrogenTank</SubtypeName>
+              <Min x="-2" y="8" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Fuel B</CustomName>
+              <Enabled>true</Enabled>
+              <FilledRatio>1</FilledRatio>
+              <IsStockpiling>false</IsStockpiling>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockLargeHydrogenThrust</SubtypeName>
+              <Min x="-1" y="0" z="-1" />
+              <BlockOrientation Forward="Down" Up="Backward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Main boost</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallHydrogenThrust</SubtypeName>
+              <Min x="3" y="5" z="0" />
+              <BlockOrientation Forward="Right" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Lateral Right</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallHydrogenThrust</SubtypeName>
+              <Min x="-3" y="5" z="0" />
+              <BlockOrientation Forward="Left" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Lateral Left</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallHydrogenThrust</SubtypeName>
+              <Min x="0" y="5" z="3" />
+              <BlockOrientation Forward="Backward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Lateral Backward</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallHydrogenThrust</SubtypeName>
+              <Min x="0" y="5" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Lateral Forward</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="3" y="10" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="3" y="11" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="3" y="12" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallHydrogenThrust</SubtypeName>
+              <Min x="3" y="13" z="0" />
+              <BlockOrientation Forward="Up" Up="Forward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Retro (3, 0)</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="-3" y="10" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="-3" y="11" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="-3" y="12" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallHydrogenThrust</SubtypeName>
+              <Min x="-3" y="13" z="0" />
+              <BlockOrientation Forward="Up" Up="Forward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Retro (-3, 0)</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="0" y="10" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="0" y="11" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="0" y="12" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallHydrogenThrust</SubtypeName>
+              <Min x="0" y="13" z="3" />
+              <BlockOrientation Forward="Up" Up="Forward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Retro (0, 3)</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="0" y="10" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="0" y="11" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Conveyor">
+              <SubtypeName>SmallBlockConveyor</SubtypeName>
+              <Min x="0" y="12" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Thrust">
+              <SubtypeName>SmallBlockSmallHydrogenThrust</SubtypeName>
+              <Min x="0" y="13" z="-3" />
+              <BlockOrientation Forward="Up" Up="Forward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Retro (0, -3)</CustomName>
+              <Enabled>true</Enabled>
+              <ThrustOverride>0</ThrustOverride>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="13" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="13" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-2" y="13" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="13" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="13" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="13" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="-1" y="13" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="13" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="13" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="13" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="0" y="13" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="13" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="13" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="13" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="1" y="13" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="13" z="-1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="13" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="2" y="13" z="1" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_MyProgrammableBlock">
+              <SubtypeName>SmallProgrammableBlock</SubtypeName>
+              <Min x="1" y="13" z="0" />
+              <BlockOrientation Forward="Down" Up="Backward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Computer</CustomName>
+              <Enabled>true</Enabled>
+              <Program>const string Tag = "[GG-MISSILE]";
+const double SearchHeight = 200, SearchRadius = 650, SearchSpeed = 35;
+const double AttackHeight = 180, DiveSpeed = 80, TrackTimeout = 2;
+enum Phase { Idle, Boost, Search, Overhead, Dive, Abort }
+Phase phase = Phase.Idle;
+IMyRemoteControl remote;
+readonly List&lt;IMyThrust&gt; thrust = new List&lt;IMyThrust&gt;();
+readonly List&lt;IMyGyro&gt; gyros = new List&lt;IMyGyro&gt;();
+readonly List&lt;IMyWarhead&gt; warheads = new List&lt;IMyWarhead&gt;();
+readonly List&lt;IMyLargeTurretBase&gt; turrets = new List&lt;IMyLargeTurretBase&gt;();
+readonly List&lt;IMyCameraBlock&gt; cameras = new List&lt;IMyCameraBlock&gt;();
+readonly List&lt;IMyGasTank&gt; tanks = new List&lt;IMyGasTank&gt;();
+readonly List&lt;IMyBatteryBlock&gt; batteries = new List&lt;IMyBatteryBlock&gt;();
+Vector3D launch, up, east, north, target, targetVelocity;
+BoundingBoxD targetBox;
+long targetId;
+double elapsed, age = 999, phaseTime, scanClock, searchAngle, searchRadius = 60;
+int scanIndex;
+string note = "Run CHECK, then LAUNCH. ABORT releases control.";
+bool dryRun;
+
+public Program()
+{
+    FindBlocks();
+    SafeStop(); // A reload never silently resumes an armed attack.
+    if (!string.IsNullOrEmpty(Storage)) note = "Reloaded: attack cancelled. Run CHECK.";
+    Storage = "";
+    Runtime.UpdateFrequency = UpdateFrequency.Update10;
+}
+
+public void Save() { Storage = phase == Phase.Idle || phase == Phase.Abort ? "" : "flight"; }
+
+void FindBlocks()
+{
+    var remotes = new List&lt;IMyRemoteControl&gt;();
+    GridTerminalSystem.GetBlocksOfType(remotes, b =&gt; Own(b));
+    remote = remotes.Count == 1 ? remotes[0] : null;
+    GridTerminalSystem.GetBlocksOfType(thrust, b =&gt; Own(b));
+    GridTerminalSystem.GetBlocksOfType(gyros, b =&gt; Own(b));
+    GridTerminalSystem.GetBlocksOfType(warheads, b =&gt; Own(b));
+    GridTerminalSystem.GetBlocksOfType(turrets, b =&gt; Own(b));
+    GridTerminalSystem.GetBlocksOfType(cameras, b =&gt; Own(b));
+    GridTerminalSystem.GetBlocksOfType(tanks, b =&gt; Own(b));
+    GridTerminalSystem.GetBlocksOfType(batteries, b =&gt; Own(b));
+    foreach (var c in cameras) c.EnableRaycast = true;
+}
+
+bool Own(IMyTerminalBlock b)
+{ return b.CubeGrid == Me.CubeGrid &amp;&amp; b.CustomName.Contains(Tag); }
+
+public void Main(string argument, UpdateType source)
+{
+    string cmd = (argument ?? "").Trim().ToUpperInvariant();
+    if (cmd == "ABORT" || cmd == "STOP") { Abort("Operator abort"); }
+    else if (cmd == "CHECK")
+    {
+        if (Active()) note = "Abort before CHECK.";
+        else { FindBlocks(); SafeStop(); note = Preflight(); }
+    }
+    else if (cmd == "LAUNCH" || cmd == "TEST")
+    {
+        if (!Active()) Start(cmd == "TEST");
+        else note = "Already in flight.";
+    }
+    // Terminal/toolbar calls do not advance simulation time.
+    if ((source &amp; (UpdateType.Update1 | UpdateType.Update10 | UpdateType.Update100)) != 0)
+    {
+        double dt = Math.Max(0.001, Math.Min(0.5, Runtime.TimeSinceLastRun.TotalSeconds));
+        if (Active()) Tick(dt);
+    }
+    Report();
+}
+
+bool Active() { return phase != Phase.Idle &amp;&amp; phase != Phase.Abort; }
+
+string Preflight()
+{
+    if (remote == null) return "Need exactly one tagged remote on this grid.";
+    if (Me.CubeGrid.IsStatic) return "Detach from the static launch grid first.";
+    if (!remote.IsWorking) return "Remote has no working power.";
+    if (thrust.Count &lt; 6 || gyros.Count == 0 || turrets.Count == 0 || warheads.Count == 0)
+        return "Need tagged thrust in six axes, gyro, turret and warhead.";
+    if (remote.GetNaturalGravity().Length() &lt; 0.5) return "Planetary gravity required.";
+    foreach (var b in batteries) if (!b.IsWorking || b.CurrentStoredPower &lt; 0.02)
+        return "Charge the batteries first.";
+    foreach (var t in tanks) if (t.FilledRatio &lt; 0.1 || t.Stockpile)
+        return "Fill tanks above 10% and disable Stockpile.";
+    Vector3D u = -Vector3D.Normalize(remote.GetNaturalGravity());
+    if (Vector3D.Dot(remote.WorldMatrix.Forward, u) &lt; 0.95)
+        return "Place the missile nose upward before launch.";
+    foreach (var g in gyros) if (!g.IsWorking) return "A gyro is offline.";
+    double mass = remote.CalculateShipMass().PhysicalMass;
+    if (Capacity(u) &lt; mass * (remote.GetNaturalGravity().Length() + 3))
+        return "Insufficient working upward thrust for launch.";
+    // Verify braking authority in every body axis before attempting the flip.
+    Vector3D[] axes = { remote.WorldMatrix.Forward, remote.WorldMatrix.Backward,
+        remote.WorldMatrix.Left, remote.WorldMatrix.Right, remote.WorldMatrix.Up, remote.WorldMatrix.Down };
+    foreach (var axis in axes)
+        if (Capacity(axis) &lt; mass * 3) return "Insufficient thrust in a body axis.";
+    bool radar = false;
+    foreach (var t in turrets) if (t.IsWorking) radar = true;
+    return radar ? "READY" : "Targeting turret is offline.";
+}
+
+double Capacity(Vector3D direction)
+{
+    double force = 0;
+    foreach (var t in thrust)
+        if (t.IsWorking) force += t.MaxEffectiveThrust * Math.Max(0, Vector3D.Dot(t.WorldMatrix.Backward, direction));
+    return force;
+}
+
+void Start(bool test)
+{
+    FindBlocks(); SafeStop();
+    string check = Preflight();
+    if (check != "READY") { note = check; return; }
+    dryRun = test;
+    launch = remote.GetPosition();
+    up = -Vector3D.Normalize(remote.GetNaturalGravity());
+    east = Vector3D.CalculatePerpendicularVector(up);
+    north = Vector3D.Cross(up, east);
+    targetId = 0; age = 999; elapsed = phaseTime = scanClock = searchAngle = 0;
+    searchRadius = 60;
+    foreach (var b in batteries) b.ChargeMode = ChargeMode.Auto;
+    var connectors = new List&lt;IMyShipConnector&gt;();
+    GridTerminalSystem.GetBlocksOfType(connectors, b =&gt; Own(b));
+    foreach (var c in connectors) c.Disconnect();
+    var gears = new List&lt;IMyLandingGear&gt;();
+    GridTerminalSystem.GetBlocksOfType(gears, b =&gt; Own(b));
+    foreach (var g in gears) { g.AutoLock = false; g.Unlock(); }
+    remote.SetAutoPilotEnabled(false);
+    remote.DampenersOverride = false;
+    SetPhase(Phase.Boost, "Vertical boost");
+}
+
+void SetPhase(Phase p, string message) { phase = p; phaseTime = 0; note = message; }
+
+void Tick(double dt)
+{
+    elapsed += dt; age += dt; phaseTime += dt; scanClock += dt;
+    if (remote == null || !remote.IsWorking) { Abort("Lost remote/power"); return; }
+    if (elapsed &gt; 150) { Abort("Search/flight time limit reached"); return; }
+    foreach (var tank in tanks) if (tank.FilledRatio &lt; 0.03) { Abort("Fuel reserve reached"); return; }
+    if (remote.GetNaturalGravity().Length() &lt; 0.5) { Abort("Left planetary flight envelope"); return; }
+    Acquire();
+    Vector3D pos = remote.GetPosition();
+    Vector3D velocity = remote.GetShipVelocities().LinearVelocity;
+    double height = Vector3D.Dot(pos - launch, up);
+    Vector3D desiredVelocity = Vector3D.Zero;
+    Vector3D nose = up;
+
+    if (phase == Phase.Boost)
+    {
+        desiredVelocity = up * Math.Min(40, Math.Max(6, (SearchHeight - height) * 0.5));
+        if (height &gt; SearchHeight - 12) SetPhase(Phase.Search, "Searching expanding circles");
+    }
+    else if ((phase == Phase.Overhead || phase == Phase.Dive) &amp;&amp; age &gt; TrackTimeout)
+    {
+        Disarm(); targetId = 0;
+        SetPhase(Phase.Search, "Target lost: warheads disarmed, resuming search");
+    }
+
+    if (phase == Phase.Search)
+    {
+        if (targetId != 0 &amp;&amp; age &lt; TrackTimeout) SetPhase(Phase.Overhead, "Enemy acquired: climbing above target");
+        else
+        {
+            searchAngle += dt * SearchSpeed / Math.Max(60, searchRadius);
+            searchRadius = Math.Min(SearchRadius, 60 + searchAngle * 15);
+            Vector3D offset = east * Math.Cos(searchAngle) + north * Math.Sin(searchAngle);
+            Vector3D waypoint = launch + offset * searchRadius + up * SearchHeight;
+            desiredVelocity = GuidanceVelocity(waypoint - pos, SearchSpeed, up, 20);
+        }
+    }
+    if (phase == Phase.Overhead || phase == Phase.Dive)
+    {
+        Vector3D predicted = target + targetVelocity * Math.Min(age, TrackTimeout);
+        if (phase == Phase.Overhead)
+        {
+            Vector3D aim = predicted + up * AttackHeight;
+            desiredVelocity = GuidanceVelocity(aim - pos, 40, up, 25) + targetVelocity;
+            Vector3D horizontal = Reject(predicted - pos, up);
+            double above = Vector3D.Dot(pos - predicted, up);
+            if (horizontal.Length() &lt; 25 &amp;&amp; above &gt;= AttackHeight - 15 &amp;&amp;
+                Reject(velocity - targetVelocity, up).Length() &lt; 12)
+                SetPhase(Phase.Dive, "Overhead: terminal dive");
+        }
+        if (phase == Phase.Dive)
+        {
+            Vector3D delta = predicted - pos;
+            double travel = Math.Min(3, delta.Length() / DiveSpeed);
+            Vector3D intercept = predicted + targetVelocity * travel;
+            nose = Unit(intercept - pos, -up);
+            desiredVelocity = nose * DiveSpeed;
+            // Do not accelerate through the attitude flip. Hold while turning.
+            if (Vector3D.Dot(remote.WorldMatrix.Forward, nose) &lt; 0.85) desiredVelocity = Vector3D.Zero;
+            double range = delta.Length();
+            bool permit = !dryRun &amp;&amp; age &lt; 0.6 &amp;&amp; range &lt; 200 &amp;&amp;
+                Vector3D.Distance(pos, launch) &gt; 100 &amp;&amp; Vector3D.Dot(nose, up) &lt; -0.5 &amp;&amp;
+                Vector3D.Dot(remote.WorldMatrix.Forward, nose) &gt; 0.85;
+            foreach (var w in warheads) w.IsArmed = permit;
+            BoundingBoxD box = new BoundingBoxD(targetBox.Min + targetVelocity * age,
+                targetBox.Max + targetVelocity * age);
+            double surfaceDistance = Vector3D.Distance(pos, Vector3D.Clamp(pos, box.Min, box.Max));
+            if (surfaceDistance &lt; 8 &amp;&amp; age &lt; 0.6)
+            {
+                if (dryRun) { Abort("TEST intercept reached; warheads stayed disarmed"); return; }
+                if (permit) { foreach (var w in warheads) w.Detonate(); return; }
+            }
+        }
+    }
+    // Terrain is not an avoidance map. Abort descent outside terminal attack.
+    double ground;
+    if (phase != Phase.Boost &amp;&amp; phase != Phase.Dive &amp;&amp;
+        remote.TryGetPlanetElevation(MyPlanetElevation.Surface, out ground) &amp;&amp; ground &lt; 35)
+    { Abort("Terrain clearance below 35m"); return; }
+    desiredVelocity = Limit(desiredVelocity, 90);
+    Vector3D desiredAcceleration = Limit((desiredVelocity - velocity) * 1.5, 20);
+    Vector3D force = (desiredAcceleration - remote.GetNaturalGravity()) * remote.CalculateShipMass().PhysicalMass;
+    ApplyForce(force);
+    Aim(nose);
+}
+
+void Acquire()
+{
+    foreach (var turret in turrets)
+    {
+        if (!turret.IsWorking) continue;
+        var hit = turret.GetTargetedEntity();
+        Consider(hit);
+    }
+    if (scanClock &lt; 0.2) return;
+    scanClock = 0;
+    foreach (var camera in cameras)
+    {
+        if (!camera.IsWorking) continue;
+        if (targetId != 0 &amp;&amp; age &lt; TrackTimeout)
+        {
+            Vector3D point = target + targetVelocity * age;
+            Vector3D delta = point - camera.GetPosition();
+            if (delta.LengthSquared() &gt; 1 &amp;&amp; Vector3D.Dot(Unit(delta, up), camera.WorldMatrix.Forward) &gt; 0.72 &amp;&amp; camera.CanScan(point))
+            { Consider(camera.Raycast(point)); break; }
+        }
+        else if (camera.CanScan(500))
+        {
+            // Sparse supplemental search; the turret is the primary detector.
+            float pitch = (scanIndex % 3 - 1) * 20;
+            float yaw = ((scanIndex / 3) % 3 - 1) * 20;
+            Consider(camera.Raycast(500, pitch, yaw)); scanIndex++;
+            break;
+        }
+    }
+}
+
+void Consider(MyDetectedEntityInfo hit)
+{
+    if (hit.IsEmpty() || hit.EntityId == Me.CubeGrid.EntityId) return;
+    if (hit.EntityId == targetId &amp;&amp; hit.Relationship != MyRelationsBetweenPlayerAndBlock.Enemies)
+    { targetId = 0; age = 999; Disarm(); return; }
+    if (hit.Relationship != MyRelationsBetweenPlayerAndBlock.Enemies ||
+        (hit.Type != MyDetectedEntityType.SmallGrid &amp;&amp; hit.Type != MyDetectedEntityType.LargeGrid)) return;
+    if (targetId != 0 &amp;&amp; age &lt; TrackTimeout &amp;&amp; hit.EntityId != targetId) return;
+    if (Vector3D.Dot(hit.Position - remote.GetPosition(), up) &gt; 60) return;
+    targetId = hit.EntityId;
+    target = hit.Position; targetVelocity = hit.Velocity; targetBox = hit.BoundingBox; age = 0;
+}
+
+void ApplyForce(Vector3D force)
+{
+    // All blueprint thrusters use orthogonal axes. Share demand within an axis.
+    foreach (var t in thrust)
+    {
+        if (!t.IsWorking) { t.ThrustOverridePercentage = 0; continue; }
+        Vector3D direction = t.WorldMatrix.Backward;
+        double available = Capacity(direction);
+        double demand = Math.Max(0, Vector3D.Dot(force, direction));
+        t.ThrustOverridePercentage = (float)Math.Min(1, demand / Math.Max(1, available));
+    }
+}
+
+void Aim(Vector3D nose)
+{
+    Vector3D current = remote.WorldMatrix.Forward;
+    Vector3D axis = Vector3D.Cross(current, nose);
+    double sine = axis.Length();
+    double cosine = MathHelper.Clamp(Vector3D.Dot(current, nose), -1, 1);
+    // Cross products vanish at 180 degrees: explicitly choose a flip axis.
+    if (sine &lt; 0.001 &amp;&amp; cosine &lt; 0) axis = remote.WorldMatrix.Right;
+    else if (sine &gt; 0.001) axis /= sine;
+    Vector3D omega = axis * Math.Min(1.5, Math.Atan2(sine, cosine) * 2);
+    omega -= remote.GetShipVelocities().AngularVelocity * 0.4;
+    foreach (var gyro in gyros)
+    {
+        Vector3D local = Vector3D.TransformNormal(omega, MatrixD.Transpose(gyro.WorldMatrix));
+        gyro.Pitch = (float)-local.X; gyro.Yaw = (float)-local.Y; gyro.Roll = (float)-local.Z;
+        gyro.GyroOverride = true;
+    }
+}
+
+void Disarm() { foreach (var w in warheads) { w.StopCountdown(); w.IsArmed = false; } }
+void SafeStop()
+{
+    foreach (var t in thrust) t.ThrustOverridePercentage = 0;
+    foreach (var g in gyros) { g.GyroOverride = false; g.Pitch = g.Yaw = g.Roll = 0; }
+    Disarm();
+    if (remote != null) { remote.SetAutoPilotEnabled(false); remote.DampenersOverride = true; }
+}
+void Abort(string reason) { phase = Phase.Abort; note = reason; SafeStop(); Storage = ""; }
+static Vector3D Reject(Vector3D v, Vector3D normal) { return v - normal * Vector3D.Dot(v, normal); }
+static Vector3D Unit(Vector3D v, Vector3D fallback) { return v.LengthSquared() &lt; 0.000001 ? fallback : Vector3D.Normalize(v); }
+static Vector3D Limit(Vector3D v, double max) { return v.LengthSquared() &lt;= max * max ? v : Unit(v, Vector3D.Zero) * max; }
+static Vector3D GuidanceVelocity(Vector3D error, double speed, Vector3D vertical, double verticalSpeed)
+{
+    return Limit(Reject(error, vertical) * 0.5, speed) + vertical * MathHelper.Clamp(Vector3D.Dot(error, vertical) * 0.5, -verticalSpeed, verticalSpeed);
+}
+
+void Report()
+{
+    string text = "GroundGame Topdown 0.1\n" + phase + (dryRun ? " | TEST: DISARMED" : "") +
+        "\n" + note + "\nFlight " + elapsed.ToString("0") + "s | track age " + age.ToString("0.0") +
+        "s\nTarget " + targetId + "\nThrusters " + thrust.Count + " | gyros " + gyros.Count +
+        "\nCHECK / TEST / LAUNCH / ABORT";
+    Echo(text);
+    var surface = Me.GetSurface(0);
+    surface.ContentType = VRage.Game.GUI.TextPanel.ContentType.TEXT_AND_IMAGE;
+    surface.FontSize = 0.9f;
+    surface.WriteText(text);
+}
+</Program>
+              <Storage />
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Gyro">
+              <SubtypeName>SmallBlockGyro</SubtypeName>
+              <Min x="-1" y="13" z="0" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Gyro</CustomName>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_RemoteControl">
+              <SubtypeName>SmallBlockRemoteControl</SubtypeName>
+              <Min x="0" y="13" z="1" />
+              <BlockOrientation Forward="Up" Up="Backward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Remote</CustomName>
+              <Enabled>true</Enabled>
+              <DampenersEnabled>true</DampenersEnabled>
+              <AutoPilotEnabled>false</AutoPilotEnabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Warhead">
+              <SubtypeName>SmallWarhead</SubtypeName>
+              <Min x="-2" y="13" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Warhead</CustomName>
+              <IsArmed>false</IsArmed>
+              <IsCountingDown>false</IsCountingDown>
+              <CountdownMs>10000</CountdownMs>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Warhead">
+              <SubtypeName>SmallWarhead</SubtypeName>
+              <Min x="-2" y="13" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Warhead</CustomName>
+              <IsArmed>false</IsArmed>
+              <IsCountingDown>false</IsCountingDown>
+              <CountdownMs>10000</CountdownMs>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Warhead">
+              <SubtypeName>SmallWarhead</SubtypeName>
+              <Min x="2" y="13" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Warhead</CustomName>
+              <IsArmed>false</IsArmed>
+              <IsCountingDown>false</IsCountingDown>
+              <CountdownMs>10000</CountdownMs>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_Warhead">
+              <SubtypeName>SmallWarhead</SubtypeName>
+              <Min x="2" y="13" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Warhead</CustomName>
+              <IsArmed>false</IsArmed>
+              <IsCountingDown>false</IsCountingDown>
+              <CountdownMs>10000</CountdownMs>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_LargeGatlingTurret">
+              <SubtypeName>SmallGatlingTurret</SubtypeName>
+              <Min x="-2" y="14" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Radar</CustomName>
+              <Enabled>true</Enabled>
+              <Range>600</Range>
+              <EnableIdleRotation>true</EnableIdleRotation>
+              <IsShooting>false</IsShooting>
+              <Flags>
+                <TargetMeteors>false</TargetMeteors>
+                <TargetMissiles>false</TargetMissiles>
+                <TargetCharacters>false</TargetCharacters>
+                <TargetNeutrals>false</TargetNeutrals>
+                <TargetFriends>false</TargetFriends>
+                <TargetSmallGrids>true</TargetSmallGrids>
+                <TargetLargeGrids>true</TargetLargeGrids>
+                <TargetStations>true</TargetStations>
+                <TargetEnemies>true</TargetEnemies>
+              </Flags>
+              <Inventory>
+                <Items>
+                  <MyObjectBuilder_InventoryItem>
+                    <Amount>20</Amount>
+                    <PhysicalContent xsi:type="MyObjectBuilder_AmmoMagazine">
+                      <SubtypeName>NATO_25x184mm</SubtypeName>
+                    </PhysicalContent>
+                    <ItemId>0</ItemId>
+                  </MyObjectBuilder_InventoryItem>
+                </Items>
+                <nextItemId>1</nextItemId>
+              </Inventory>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_BatteryBlock">
+              <SubtypeName>SmallBlockBatteryBlock</SubtypeName>
+              <Min x="-1" y="8" z="3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Battery</CustomName>
+              <Enabled>true</Enabled>
+              <CurrentStoredPower>1.0</CurrentStoredPower>
+              <ChargeMode>0</ChargeMode>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CameraBlock">
+              <SubtypeName>SmallCameraBlock</SubtypeName>
+              <Min x="3" y="10" z="1" />
+              <BlockOrientation Forward="Right" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Camera Right</CustomName>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CameraBlock">
+              <SubtypeName>SmallCameraBlock</SubtypeName>
+              <Min x="-3" y="10" z="1" />
+              <BlockOrientation Forward="Left" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Camera Left</CustomName>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CameraBlock">
+              <SubtypeName>SmallCameraBlock</SubtypeName>
+              <Min x="1" y="10" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Camera Forward</CustomName>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CameraBlock">
+              <SubtypeName>SmallCameraBlock</SubtypeName>
+              <Min x="1" y="10" z="3" />
+              <BlockOrientation Forward="Backward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Camera Backward</CustomName>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CameraBlock">
+              <SubtypeName>SmallCameraBlock</SubtypeName>
+              <Min x="2" y="2" z="0" />
+              <BlockOrientation Forward="Down" Up="Backward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Camera Down</CustomName>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="13" z="2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CameraBlock">
+              <SubtypeName>SmallCameraBlock</SubtypeName>
+              <Min x="3" y="14" z="2" />
+              <BlockOrientation Forward="Up" Up="Forward" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Camera nose</CustomName>
+              <Enabled>true</Enabled>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="13" z="-2" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_CubeBlock">
+              <SubtypeName>SmallBlockArmorBlock</SubtypeName>
+              <Min x="3" y="13" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+            </MyObjectBuilder_CubeBlock>
+            <MyObjectBuilder_CubeBlock xsi:type="MyObjectBuilder_RadioAntenna">
+              <SubtypeName>SmallBlockRadioAntenna</SubtypeName>
+              <Min x="3" y="14" z="-3" />
+              <BlockOrientation Forward="Forward" Up="Up" />
+              <ColorMaskHSV x="0.58" y="-0.35" z="-0.2" />
+              <IntegrityPercent>1</IntegrityPercent>
+              <BuildPercent>1</BuildPercent>
+              <CustomName>[GG-MISSILE] Antenna</CustomName>
+              <Enabled>true</Enabled>
+              <BroadcastRadius>5000</BroadcastRadius>
+              <EnableBroadcasting>true</EnableBroadcasting>
+            </MyObjectBuilder_CubeBlock>
+          </CubeBlocks>
+          <DisplayName>[GG] Topdown Missile</DisplayName>
+          <IsStatic>false</IsStatic>
+          <DampenersEnabled>true</DampenersEnabled>
+          <LinearVelocity x="0" y="0" z="0" />
+          <AngularVelocity x="0" y="0" z="0" />
+        </CubeGrid>
+      </CubeGrids>
+    </ShipBlueprint>
+  </ShipBlueprints>
+</Definitions>

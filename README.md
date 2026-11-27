@@ -1,5 +1,9 @@
 # GroundGame
 
+Space Engineers blueprints and programmable block scripts.
+
+- [Topdown missile prototype](docs/TOPDOWN-MISSILE.md): a disposable missile that launches vertically, searches for nearby enemy grids, climbs overhead and dives. [Install bundle](dist/GroundGame_Topdown_Prototype.zip), [PB script](dist/TopdownMissile.cs), [blueprint](blueprints/%5BGG%5D%20Topdown%20Missile/bp.sbc). Compiled and checked; live flight remains untested.
+
 ## [Dot] Drone [PAM+] · vertical mining
 
 The drone's main remote runs **PAM Vertical Ore 1.1** on `[PB] Core [HAMD]`. The blueprint starts in **Auto** with **Any** ore selected. Its six drills point down when the remote is level. The external PAM LCD shows the menu, and the core's built-in screen and terminal **Detailed Info** show drill diagnostics.
