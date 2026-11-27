@@ -1,4 +1,4 @@
-// GroundGame Topdown 0.3 - Space Engineers programmable block script.
+// GroundGame Topdown 0.4 - Space Engineers programmable block script.
 // Paste the BODY between the markers, not this file's using/class wrapper.
 using System;
 using System.Collections.Generic;
@@ -13,7 +13,7 @@ public sealed class Program : MyGridProgram
 {
 // BEGIN PB BODY
 const string Tag = "[GG-MISSILE]";
-const double SearchHeight = 200, SearchRadius = 650, SearchSpeed = 35;
+const double SearchHeight = 200, ScanTurnRate = Math.PI / 60;
 const double AttackHeight = 180, DiveSpeed = 80, TrackTimeout = 2;
 const double CameraRange = 750, LaunchDelay = 10;
 enum Phase { Idle, Countdown, Boost, Search, Overhead, Dive, Abort }
@@ -28,10 +28,11 @@ readonly List<IMyLightingBlock> lights = new List<IMyLightingBlock>();
 readonly List<int> cameraSteps = new List<int>();
 readonly List<IMyGasTank> tanks = new List<IMyGasTank>();
 readonly List<IMyBatteryBlock> batteries = new List<IMyBatteryBlock>();
-Vector3D launch, up, east, north, target, targetVelocity;
+Vector3D launch, up, scanAnchor, target, targetVelocity;
 BoundingBoxD targetBox;
 long targetId;
-double elapsed, age = 999, phaseTime, scanClock, searchAngle, searchRadius = 60;
+double elapsed, age = 999, phaseTime, scanClock;
+string hoverInfo = "";
 int cameraCursor, rayCount;
 double countdownLeft;
 Vector3D targetOffset;
@@ -207,11 +208,9 @@ void Start(bool test)
     watchContacts = false;
     launch = remote.GetPosition();
     up = -Vector3D.Normalize(remote.GetNaturalGravity());
-    east = Vector3D.CalculatePerpendicularVector(up);
-    north = Vector3D.Cross(up, east);
+    scanAnchor = launch + up * SearchHeight;
     if (age > TrackTimeout) { targetId = 0; age = 999; }
-    elapsed = phaseTime = scanClock = searchAngle = 0;
-    searchRadius = 60;
+    elapsed = phaseTime = scanClock = 0;
     foreach (var b in batteries) b.ChargeMode = ChargeMode.Auto;
     var connectors = new List<IMyShipConnector>();
     GridTerminalSystem.GetBlocksOfType(connectors, b => Own(b));
@@ -239,15 +238,17 @@ void Tick(double dt)
     double height = Vector3D.Dot(pos - launch, up);
     Vector3D desiredVelocity = Vector3D.Zero;
     Vector3D nose = up;
+    double pivotRate = 0;
 
     if (phase == Phase.Boost)
     {
         desiredVelocity = up * Math.Min(40, Math.Max(6, (SearchHeight - height) * 0.5));
-        if (height > SearchHeight - 12) SetPhase(Phase.Search, "Searching expanding circles");
+        if (height > SearchHeight - 12) SetPhase(Phase.Search, "Holding scan point; upright pivot search");
     }
     else if ((phase == Phase.Overhead || phase == Phase.Dive) && age > TrackTimeout)
     {
         Disarm(); targetId = 0;
+        scanAnchor = pos + up * Math.Max(0, SearchHeight - height);
         SetPhase(Phase.Search, "Target lost: warheads disarmed, resuming search");
     }
 
@@ -256,11 +257,13 @@ void Tick(double dt)
         if (targetId != 0 && age < TrackTimeout) SetPhase(Phase.Overhead, "Enemy acquired: climbing above target");
         else
         {
-            searchAngle += dt * SearchSpeed / Math.Max(60, searchRadius);
-            searchRadius = Math.Min(SearchRadius, 60 + searchAngle * 15);
-            Vector3D offset = east * Math.Cos(searchAngle) + north * Math.Sin(searchAngle);
-            Vector3D waypoint = launch + offset * searchRadius + up * SearchHeight;
-            desiredVelocity = GuidanceVelocity(waypoint - pos, SearchSpeed, up, 20);
+            Vector3D error = scanAnchor - pos;
+            desiredVelocity = GuidanceVelocity(error, 8, up, 5);
+            bool upright = Vector3D.Dot(remote.WorldMatrix.Forward, up) > Math.Cos(5 * Math.PI / 180);
+            bool settled = Reject(error,up).Length() < 3 && Math.Abs(Vector3D.Dot(error,up)) < 3 &&
+                Reject(velocity,up).Length() < 1.5 && Math.Abs(Vector3D.Dot(velocity,up)) < 1.5;
+            if (upright && settled) pivotRate = ScanTurnRate;
+            note = !upright ? "Restoring upright attitude; pivot paused" : settled ? "Holding scan point; pivoting 3 deg/s" : "Settling at scan point; pivot paused";
         }
     }
     if (phase == Phase.Overhead || phase == Phase.Dive)
@@ -306,10 +309,53 @@ void Tick(double dt)
         remote.TryGetPlanetElevation(MyPlanetElevation.Surface, out ground) && ground < 35)
     { Abort("Terrain clearance below 35m"); return; }
     desiredVelocity = Limit(desiredVelocity, 90);
-    Vector3D desiredAcceleration = Limit((desiredVelocity - velocity) * 1.5, 20);
-    Vector3D force = (desiredAcceleration - remote.GetNaturalGravity()) * remote.CalculateShipMass().PhysicalMass;
+    Vector3D correction = (desiredVelocity - velocity) * 1.5;
+    Vector3D desiredAcceleration = phase == Phase.Search ?
+        up * MathHelper.Clamp(Vector3D.Dot(correction,up),-10,10) + Limit(Reject(correction,up),20) : Limit(correction,20);
+    double mass = remote.CalculateShipMass().PhysicalMass;
+    Vector3D gravity = remote.GetNaturalGravity();
+    Vector3D force = (desiredAcceleration - gravity) * mass;
+    if (phase == Phase.Search)
+    {
+        // Reserve lift first. Lateral corrections can use only the remaining
+        // per-axis thrust, including gravity's projection when slightly tilted.
+        Vector3D weightSupport = -gravity * mass;
+        if (!CanSupport(weightSupport)) { Abort("Cannot support weight with 10% thrust margin; scan cancelled"); return; }
+        Vector3D vertical = up * Vector3D.Dot(desiredAcceleration,up) * mass;
+        force = weightSupport + vertical * ForceScale(weightSupport,vertical);
+        Vector3D lateral = Reject(desiredAcceleration,up) * mass;
+        if (Vector3D.Dot(remote.WorldMatrix.Forward,up) < Math.Cos(5 * Math.PI / 180)) lateral = Vector3D.Zero;
+        force += lateral * ForceScale(force,lateral);
+        double side = Math.Min(Math.Min(Capacity(remote.WorldMatrix.Left),Capacity(remote.WorldMatrix.Right)),
+            Math.Min(Capacity(remote.WorldMatrix.Up),Capacity(remote.WorldMatrix.Down))) / mass;
+        hoverInfo = "Lift/weight " + (Capacity(up) / Math.Max(1,mass*gravity.Length())).ToString("0.00") +
+            " | side max " + side.ToString("0.0") + "m/s2 | lift priority";
+    }
+    else hoverInfo = "";
     ApplyForce(force);
-    Aim(nose);
+    Aim(nose,pivotRate);
+}
+
+bool CanSupport(Vector3D support)
+{
+    foreach (var t in thrust)
+    {
+        Vector3D d = t.WorldMatrix.Backward;
+        if (Vector3D.Dot(support,d) > Capacity(d)*0.9 + 1) return false;
+    }
+    return true;
+}
+
+double ForceScale(Vector3D reserved, Vector3D requested)
+{
+    double scale = 1;
+    foreach (var t in thrust)
+    {
+        Vector3D d = t.WorldMatrix.Backward;
+        double delta = Vector3D.Dot(requested,d);
+        if (delta > 0.001) scale = Math.Min(scale, (Capacity(d)*0.9 - Vector3D.Dot(reserved,d))/delta);
+    }
+    return Math.Max(0,Math.Min(1,scale));
 }
 
 void Acquire()
@@ -409,7 +455,7 @@ void ApplyForce(Vector3D force)
     }
 }
 
-void Aim(Vector3D nose)
+void Aim(Vector3D nose, double pivotRate)
 {
     Vector3D current = remote.WorldMatrix.Forward;
     Vector3D axis = Vector3D.Cross(current, nose);
@@ -419,7 +465,8 @@ void Aim(Vector3D nose)
     if (sine < 0.001 && cosine < 0) axis = remote.WorldMatrix.Right;
     else if (sine > 0.001) axis /= sine;
     Vector3D omega = axis * Math.Min(1.5, Math.Atan2(sine, cosine) * 2);
-    omega -= remote.GetShipVelocities().AngularVelocity * 0.4;
+    omega += up * pivotRate;
+    omega -= (remote.GetShipVelocities().AngularVelocity - up * pivotRate) * 0.4;
     foreach (var gyro in gyros)
     {
         Vector3D local = Vector3D.TransformNormal(omega, MatrixD.Transpose(gyro.WorldMatrix));
@@ -450,10 +497,11 @@ void Report()
 {
     bool fresh = targetId != 0 && age <= TrackTimeout;
     string contact = !fresh || remote == null ? "NO ENEMY LOCK" : "ENEMY: " + targetName + " | " + Vector3D.Distance(remote.GetPosition(), target).ToString("0") + "m";
-    string text = "GroundGame Topdown 0.3\n" + phase + (phase == Phase.Countdown ? " T-" + Math.Ceiling(Math.Max(0,countdownLeft)) + "s" : "") + (watchContacts ? " | PASSIVE SCAN" : "") + (dryRun ? " | TEST: DISARMED" : "") +
+    string text = "GroundGame Topdown 0.4\n" + phase + (phase == Phase.Countdown ? " T-" + Math.Ceiling(Math.Max(0,countdownLeft)) + "s" : "") + (watchContacts ? " | PASSIVE SCAN" : "") + (dryRun ? " | TEST: DISARMED" : "") +
         "\n" + note + "\nFlight " + elapsed.ToString("0") + "s | track age " + age.ToString("0.0") +
         "s\n" + contact + "\nCamera rays " + rayCount + " | 750m sweep | " + acquisition +
         "\nThrusters " + thrust.Count + " | gyros " + gyros.Count +
+        (hoverInfo.Length == 0 ? "" : "\n" + hoverInfo) +
         "\nRemote page 1: 1 CHECK  2 SCAN\n3 TEST 10s  4 LAUNCH 10s  5 ABORT\n6 AIM  7 Down  8 LOCK  9 ABORT";
     Echo(text);
     if (remote != null)

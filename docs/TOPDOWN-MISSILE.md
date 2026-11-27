@@ -1,6 +1,18 @@
-# GroundGame Topdown missile — prototype 0.3
+# GroundGame Topdown missile — prototype 0.4
 
 A vanilla Space Engineers missile with camera raycast acquisition, vertical boost, overhead approach and downward attack. Requires natural gravity and in-game scripts enabled. No mods or DLC required. The battery remains inline. The targeting turret has been removed; cameras provide all target reports.
+
+## Fixed-position pivot search
+
+After boost, the missile holds a point about 200 m above launch and turns slowly around the gravity axis at **3 degrees/second**. Its nose and main lift engine stay vertical. It does not fly a spiral or tip sideways to sweep. Existing cameras also sweep their ray angles while the body turns; no rotor hardware is needed.
+
+The main engine carries the weight. The controller reserves gravity support first, then altitude correction, and only then assigns the remaining per-axis thrust to lateral drift correction. Each budget uses current effective thrust and measured ship mass; lateral engines are not assumed as powerful as the main engine. Commands leave 10% thrust headroom. Vertical braking remains independent of large sideways correction requests.
+
+The pivot pauses if the missile leans more than 5 degrees, is more than 3 m from the scan point, or moves faster than 1.5 m/s vertically/horizontally. It restores upright attitude and settles before resuming. If gravity support cannot fit the current per-axis thrust budgets with headroom, it cancels search and reports the fault. Insufficient thrust cannot be fixed by software; abort/dampeners do not guarantee altitude recovery on a damaged or overloaded ship.
+
+Computer output shows lift-to-weight ratio, weakest lateral acceleration, and whether the pivot is settling, restoring upright attitude or turning. If a target is lost away from the initial scan point, the missile holds its current horizontal location and climbs back to at least the original search-height plane before resuming the pivot.
+
+On an existing 0.3 missile, abort first and reload **GroundGame Topdown** into Computer through Browse Scripts, then Check code and Remember & Exit. Geometry and button wiring are unchanged in 0.4. Fresh F10 copies embed the new script.
 
 ## Install or update
 
@@ -71,7 +83,7 @@ Direct PB commands `LAUNCH` and `TEST` remain immediate for compatibility. Saved
 
 ## Flight and verification
 
-Boost climbs about 200 m above launch. Search flies expanding circles, bounded by a 150-second flight limit and fuel. Overhead approaches about 180 m above the target, then dives at up to 80 m/s. Targets more than 60 m above the missile are excluded. Outside boost/dive, reported terrain clearance below 35 m aborts. No obstacle map or guaranteed clear route exists.
+Boost climbs about 200 m above launch. Search holds a fixed point and pivots, bounded by a 150-second flight limit and fuel. Overhead approaches about 180 m above the target, then dives at up to 80 m/s. Targets more than 60 m above the missile are excluded. Outside boost/dive, reported terrain clearance below 35 m aborts. No obstacle map or guaranteed clear route exists.
 
 Arming requires an enemy report younger than 0.6 seconds, terminal range below 200 m, more than 100 m separation from launch, and an aligned downward nose. An 8 m bounding-box proximity check may detonate; armed-warhead collision can occur first.
 
@@ -82,7 +94,9 @@ python tools/build_missile.py --game 'Z:\SteamLibrary\steamapps\common\SpaceEngi
 python tools/check_missile.py --game 'Z:\SteamLibrary\steamapps\common\SpaceEngineers'
 ```
 
-Compilation uses installed game assemblies. The 43 interface-proxy checks cover camera-only acquisition, charge waiting, fair scanning, centerline LOCK, target loss, abort, countdown thrust hold, early timer rejection, cancelled/late callbacks and disarmed test mode. Native XML loading and entity remapping verify remote, timer and exterior-panel links. Occupied-cell overlap, connectivity and intended gas-riser cells are also checked.
+Compilation uses installed game assemblies. The 56 controller checks cover camera acquisition, countdown/abort, upright pivot, asymmetric thrust limits, lift priority, tilt pause and insufficient-lift rejection. Native XML loading and entity remapping verify remote, timer and exterior-panel links. Occupied-cell overlap, connectivity and intended gas-riser cells are also checked.
+
+A 125-second numerical translation model used a 12,000 kg test mass, 480 kN main lift, 393.6 kN reverse thrust and 98.4 kN lateral axes. It began 6 m low, descending at 3 m/s, with horizontal drift; it also applied sustained lateral disturbance and a temporary downward gust. Peak height error was 6.307 m, final height error rounded to 0.000 m, and final lateral offset was 0.481 m. This model uses the actual controller output but assumes upright attitude, prescribed yaw and instantaneous thrust. It does not simulate Space Engineers' gyros, collisions, thruster response or full flight physics.
 
 **Live flight remains untested.** These checks do not establish physical flight, fuel endurance, mount strength, conveyor flow, raycast coverage or blast/plume effects. Start with a creative TEST flight.
 

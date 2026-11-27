@@ -4,7 +4,7 @@
     <ShipBlueprint xsi:type="MyObjectBuilder_ShipBlueprintDefinition">
       <Id Type="MyObjectBuilder_ShipBlueprintDefinition" Subtype="[GG] Topdown Missile" />
       <DisplayName>GroundGame</DisplayName>
-      <Description>Topdown 0.3: camera raycast search, inline battery, exterior START 10s and ABORT buttons. Remote page 1: 1 CHECK, 2 SCAN, 3 TEST 10s, 4 LAUNCH 10s, 5/9 ABORT, 6 AIM, 7 down, 8 LOCK camera centerline. Camera sweeps reach 750m, require charge and can miss small targets between rays. Live flight acceptance pending.</Description>
+      <Description>Topdown 0.4: fixed-position upright pivot, lift-priority control, inline battery, exterior START 10s and ABORT buttons. Remote page 1: 1 CHECK, 2 SCAN, 3 TEST 10s, 4 LAUNCH 10s, 5/9 ABORT, 6 AIM, 7 down, 8 LOCK camera centerline. Camera sweeps reach 750m, require charge and can miss small targets between rays. Live flight acceptance pending.</Description>
       <CubeGrids>
         <CubeGrid>
           <EntityId>0</EntityId>
@@ -527,7 +527,7 @@
               <CustomName>[GG-MISSILE] Computer</CustomName>
               <Enabled>true</Enabled>
               <Program>const string Tag = "[GG-MISSILE]";
-const double SearchHeight = 200, SearchRadius = 650, SearchSpeed = 35;
+const double SearchHeight = 200, ScanTurnRate = Math.PI / 60;
 const double AttackHeight = 180, DiveSpeed = 80, TrackTimeout = 2;
 const double CameraRange = 750, LaunchDelay = 10;
 enum Phase { Idle, Countdown, Boost, Search, Overhead, Dive, Abort }
@@ -542,10 +542,11 @@ readonly List&lt;IMyLightingBlock&gt; lights = new List&lt;IMyLightingBlock&gt;(
 readonly List&lt;int&gt; cameraSteps = new List&lt;int&gt;();
 readonly List&lt;IMyGasTank&gt; tanks = new List&lt;IMyGasTank&gt;();
 readonly List&lt;IMyBatteryBlock&gt; batteries = new List&lt;IMyBatteryBlock&gt;();
-Vector3D launch, up, east, north, target, targetVelocity;
+Vector3D launch, up, scanAnchor, target, targetVelocity;
 BoundingBoxD targetBox;
 long targetId;
-double elapsed, age = 999, phaseTime, scanClock, searchAngle, searchRadius = 60;
+double elapsed, age = 999, phaseTime, scanClock;
+string hoverInfo = "";
 int cameraCursor, rayCount;
 double countdownLeft;
 Vector3D targetOffset;
@@ -721,11 +722,9 @@ void Start(bool test)
     watchContacts = false;
     launch = remote.GetPosition();
     up = -Vector3D.Normalize(remote.GetNaturalGravity());
-    east = Vector3D.CalculatePerpendicularVector(up);
-    north = Vector3D.Cross(up, east);
+    scanAnchor = launch + up * SearchHeight;
     if (age &gt; TrackTimeout) { targetId = 0; age = 999; }
-    elapsed = phaseTime = scanClock = searchAngle = 0;
-    searchRadius = 60;
+    elapsed = phaseTime = scanClock = 0;
     foreach (var b in batteries) b.ChargeMode = ChargeMode.Auto;
     var connectors = new List&lt;IMyShipConnector&gt;();
     GridTerminalSystem.GetBlocksOfType(connectors, b =&gt; Own(b));
@@ -753,15 +752,17 @@ void Tick(double dt)
     double height = Vector3D.Dot(pos - launch, up);
     Vector3D desiredVelocity = Vector3D.Zero;
     Vector3D nose = up;
+    double pivotRate = 0;
 
     if (phase == Phase.Boost)
     {
         desiredVelocity = up * Math.Min(40, Math.Max(6, (SearchHeight - height) * 0.5));
-        if (height &gt; SearchHeight - 12) SetPhase(Phase.Search, "Searching expanding circles");
+        if (height &gt; SearchHeight - 12) SetPhase(Phase.Search, "Holding scan point; upright pivot search");
     }
     else if ((phase == Phase.Overhead || phase == Phase.Dive) &amp;&amp; age &gt; TrackTimeout)
     {
         Disarm(); targetId = 0;
+        scanAnchor = pos + up * Math.Max(0, SearchHeight - height);
         SetPhase(Phase.Search, "Target lost: warheads disarmed, resuming search");
     }
 
@@ -770,11 +771,13 @@ void Tick(double dt)
         if (targetId != 0 &amp;&amp; age &lt; TrackTimeout) SetPhase(Phase.Overhead, "Enemy acquired: climbing above target");
         else
         {
-            searchAngle += dt * SearchSpeed / Math.Max(60, searchRadius);
-            searchRadius = Math.Min(SearchRadius, 60 + searchAngle * 15);
-            Vector3D offset = east * Math.Cos(searchAngle) + north * Math.Sin(searchAngle);
-            Vector3D waypoint = launch + offset * searchRadius + up * SearchHeight;
-            desiredVelocity = GuidanceVelocity(waypoint - pos, SearchSpeed, up, 20);
+            Vector3D error = scanAnchor - pos;
+            desiredVelocity = GuidanceVelocity(error, 8, up, 5);
+            bool upright = Vector3D.Dot(remote.WorldMatrix.Forward, up) &gt; Math.Cos(5 * Math.PI / 180);
+            bool settled = Reject(error,up).Length() &lt; 3 &amp;&amp; Math.Abs(Vector3D.Dot(error,up)) &lt; 3 &amp;&amp;
+                Reject(velocity,up).Length() &lt; 1.5 &amp;&amp; Math.Abs(Vector3D.Dot(velocity,up)) &lt; 1.5;
+            if (upright &amp;&amp; settled) pivotRate = ScanTurnRate;
+            note = !upright ? "Restoring upright attitude; pivot paused" : settled ? "Holding scan point; pivoting 3 deg/s" : "Settling at scan point; pivot paused";
         }
     }
     if (phase == Phase.Overhead || phase == Phase.Dive)
@@ -820,10 +823,53 @@ void Tick(double dt)
         remote.TryGetPlanetElevation(MyPlanetElevation.Surface, out ground) &amp;&amp; ground &lt; 35)
     { Abort("Terrain clearance below 35m"); return; }
     desiredVelocity = Limit(desiredVelocity, 90);
-    Vector3D desiredAcceleration = Limit((desiredVelocity - velocity) * 1.5, 20);
-    Vector3D force = (desiredAcceleration - remote.GetNaturalGravity()) * remote.CalculateShipMass().PhysicalMass;
+    Vector3D correction = (desiredVelocity - velocity) * 1.5;
+    Vector3D desiredAcceleration = phase == Phase.Search ?
+        up * MathHelper.Clamp(Vector3D.Dot(correction,up),-10,10) + Limit(Reject(correction,up),20) : Limit(correction,20);
+    double mass = remote.CalculateShipMass().PhysicalMass;
+    Vector3D gravity = remote.GetNaturalGravity();
+    Vector3D force = (desiredAcceleration - gravity) * mass;
+    if (phase == Phase.Search)
+    {
+        // Reserve lift first. Lateral corrections can use only the remaining
+        // per-axis thrust, including gravity's projection when slightly tilted.
+        Vector3D weightSupport = -gravity * mass;
+        if (!CanSupport(weightSupport)) { Abort("Cannot support weight with 10% thrust margin; scan cancelled"); return; }
+        Vector3D vertical = up * Vector3D.Dot(desiredAcceleration,up) * mass;
+        force = weightSupport + vertical * ForceScale(weightSupport,vertical);
+        Vector3D lateral = Reject(desiredAcceleration,up) * mass;
+        if (Vector3D.Dot(remote.WorldMatrix.Forward,up) &lt; Math.Cos(5 * Math.PI / 180)) lateral = Vector3D.Zero;
+        force += lateral * ForceScale(force,lateral);
+        double side = Math.Min(Math.Min(Capacity(remote.WorldMatrix.Left),Capacity(remote.WorldMatrix.Right)),
+            Math.Min(Capacity(remote.WorldMatrix.Up),Capacity(remote.WorldMatrix.Down))) / mass;
+        hoverInfo = "Lift/weight " + (Capacity(up) / Math.Max(1,mass*gravity.Length())).ToString("0.00") +
+            " | side max " + side.ToString("0.0") + "m/s2 | lift priority";
+    }
+    else hoverInfo = "";
     ApplyForce(force);
-    Aim(nose);
+    Aim(nose,pivotRate);
+}
+
+bool CanSupport(Vector3D support)
+{
+    foreach (var t in thrust)
+    {
+        Vector3D d = t.WorldMatrix.Backward;
+        if (Vector3D.Dot(support,d) &gt; Capacity(d)*0.9 + 1) return false;
+    }
+    return true;
+}
+
+double ForceScale(Vector3D reserved, Vector3D requested)
+{
+    double scale = 1;
+    foreach (var t in thrust)
+    {
+        Vector3D d = t.WorldMatrix.Backward;
+        double delta = Vector3D.Dot(requested,d);
+        if (delta &gt; 0.001) scale = Math.Min(scale, (Capacity(d)*0.9 - Vector3D.Dot(reserved,d))/delta);
+    }
+    return Math.Max(0,Math.Min(1,scale));
 }
 
 void Acquire()
@@ -923,7 +969,7 @@ void ApplyForce(Vector3D force)
     }
 }
 
-void Aim(Vector3D nose)
+void Aim(Vector3D nose, double pivotRate)
 {
     Vector3D current = remote.WorldMatrix.Forward;
     Vector3D axis = Vector3D.Cross(current, nose);
@@ -933,7 +979,8 @@ void Aim(Vector3D nose)
     if (sine &lt; 0.001 &amp;&amp; cosine &lt; 0) axis = remote.WorldMatrix.Right;
     else if (sine &gt; 0.001) axis /= sine;
     Vector3D omega = axis * Math.Min(1.5, Math.Atan2(sine, cosine) * 2);
-    omega -= remote.GetShipVelocities().AngularVelocity * 0.4;
+    omega += up * pivotRate;
+    omega -= (remote.GetShipVelocities().AngularVelocity - up * pivotRate) * 0.4;
     foreach (var gyro in gyros)
     {
         Vector3D local = Vector3D.TransformNormal(omega, MatrixD.Transpose(gyro.WorldMatrix));
@@ -964,10 +1011,11 @@ void Report()
 {
     bool fresh = targetId != 0 &amp;&amp; age &lt;= TrackTimeout;
     string contact = !fresh || remote == null ? "NO ENEMY LOCK" : "ENEMY: " + targetName + " | " + Vector3D.Distance(remote.GetPosition(), target).ToString("0") + "m";
-    string text = "GroundGame Topdown 0.3\n" + phase + (phase == Phase.Countdown ? " T-" + Math.Ceiling(Math.Max(0,countdownLeft)) + "s" : "") + (watchContacts ? " | PASSIVE SCAN" : "") + (dryRun ? " | TEST: DISARMED" : "") +
+    string text = "GroundGame Topdown 0.4\n" + phase + (phase == Phase.Countdown ? " T-" + Math.Ceiling(Math.Max(0,countdownLeft)) + "s" : "") + (watchContacts ? " | PASSIVE SCAN" : "") + (dryRun ? " | TEST: DISARMED" : "") +
         "\n" + note + "\nFlight " + elapsed.ToString("0") + "s | track age " + age.ToString("0.0") +
         "s\n" + contact + "\nCamera rays " + rayCount + " | 750m sweep | " + acquisition +
         "\nThrusters " + thrust.Count + " | gyros " + gyros.Count +
+        (hoverInfo.Length == 0 ? "" : "\n" + hoverInfo) +
         "\nRemote page 1: 1 CHECK  2 SCAN\n3 TEST 10s  4 LAUNCH 10s  5 ABORT\n6 AIM  7 Down  8 LOCK  9 ABORT";
     Echo(text);
     if (remote != null)
@@ -1315,7 +1363,7 @@ void Report()
                   </Slot>
                 </SlotsGamepad>
               </Toolbar>
-              <CustomData>GroundGame Topdown 0.3
+              <CustomData>GroundGame Topdown 0.4
 Page 1: 1 CHECK | 2 camera SCAN | 3 TEST 10s | 4 live LAUNCH 10s | 5 ABORT | 6 AIM side camera | 7 down camera | 8 LOCK camera centerline | 9 ABORT.
 Exterior START begins a 10 second timer; ABORT cancels it. Flashing amber lamp means countdown. Camera scan has a 750m range budget and thin rays can miss small ships. LOCK uses an active camera, or the Forward side camera. Enemy grids only.
 Gamepad bank 1: Up CHECK, Left SCAN, Right TEST 10s, Down ABORT. Bank 2: Up LAUNCH 10s, Left AIM camera, Right down camera, Down ABORT. Bank 3: Up LOCK, Left STATUS, Right SCAN, Down ABORT.</CustomData>

@@ -57,7 +57,8 @@ public class Harness
     static List<Proxy> sensors;
     static bool timerRunning;
     static List<Proxy> engines;
-    static Vector3D position, velocity;
+    static Vector3D position, velocity, angularVelocity;
+    static float mass;
     static MyDetectedEntityInfo contact;
     static int detonations, checks;
     static Program program;
@@ -86,7 +87,7 @@ public class Harness
     {
         blocks = new List<object>(); engines = new List<Proxy>();
         sensors = new List<Proxy>(); timerRunning = false;
-        contact = new MyDetectedEntityInfo(); position = velocity = Vector3D.Zero; detonations = 0;
+        contact = new MyDetectedEntityInfo(); position = velocity = angularVelocity = Vector3D.Zero; detonations = 0; mass = 12000;
         var cp = new Proxy(typeof(IMyCubeGrid)); cp.Values["EntityId"] = 1L;
         cube = cp.As<IMyCubeGrid>();
         var screen = new Proxy(typeof(IMyTextSurface));
@@ -99,14 +100,14 @@ public class Harness
         remote.Method = (n,a) => {
             if(n == "GetNaturalGravity") return new Vector3D(0,-9.81,0);
             if(n == "GetPosition") return position;
-            if(n == "CalculateShipMass") return new MyShipMass(10000,10000,10000);
-            if(n == "GetShipVelocities") return new MyShipVelocities(velocity,Vector3D.Zero);
+            if(n == "CalculateShipMass") return new MyShipMass(mass,mass,mass);
+            if(n == "GetShipVelocities") return new MyShipVelocities(velocity,angularVelocity);
             return null;
         };
         foreach(Vector3D direction in new[]{Vector3D.Up,Vector3D.Down,Vector3D.Left,Vector3D.Right,Vector3D.Forward,Vector3D.Backward})
         {
             var engine = Block<IMyThrust>("Engine");
-            engine.Values["MaxEffectiveThrust"] = 480000f;
+            engine.Values["MaxEffectiveThrust"] = direction==Vector3D.Up ? 480000f : direction==Vector3D.Down ? 393600f : 98400f;
             engine.Values["WorldMatrix"] = MatrixD.CreateWorld(Vector3D.Zero,-direction,Vector3D.CalculatePerpendicularVector(direction));
             engines.Add(engine);
         }
@@ -161,6 +162,15 @@ public class Harness
         position = new Vector3D(0,200,0); Step(1);
         contact = Enemy(MyRelationsBetweenPlayerAndBlock.Enemies); Step(1);
         position = new Vector3D(100,180,0); Step(1);
+    }
+    static void ToSearch()
+    { Command("LAUNCH"); position=new Vector3D(0,200,0);Step(1); }
+    static Vector3D ActualForce()
+    {
+        Vector3D f=Vector3D.Zero;
+        foreach(var e in engines)f+=((MatrixD)e.Values["WorldMatrix"]).Backward *
+            (double)(float)e.Values["MaxEffectiveThrust"] * (double)(float)e.Values["ThrustOverridePercentage"];
+        return f;
     }
     public static void Main()
     {
@@ -238,6 +248,49 @@ public class Harness
         Setup();contact=Enemy(MyRelationsBetweenPlayerAndBlock.Enemies);Command("SCAN");Command("COUNTDOWN");
         contact=new MyDetectedEntityInfo();Step(15);
         Assert(((string)remote.Values["CustomName"]).Contains("NO LOCK"),"countdown never displays a stale camera report as a fresh lock");
-        Console.WriteLine(checks+" controller checks passed; no physics simulation performed.");
+        Setup();ToSearch();Step(1);
+        Assert((Vector3D)Field("scanAnchor")==new Vector3D(0,200,0),"scan anchors above launch instead of circling");
+        Assert(Math.Abs(ActualForce().Y-mass*9.81)<0.1 && Math.Abs(ActualForce().X)+Math.Abs(ActualForce().Z)<0.1,"stationary scan balances weight on main lift");
+        Assert(Math.Abs((float)gyro.Values["Yaw"])>0.02 && Math.Abs((float)gyro.Values["Pitch"])+Math.Abs((float)gyro.Values["Roll"])<0.001,"search pivot rotates about gravity without tipping nose");
+        angularVelocity=Vector3D.Up*(Math.PI/60);Step(1);
+        Assert(Math.Abs((float)gyro.Values["Yaw"]+Math.PI/60)<0.0001,"pivot feed-forward preserves three-degree steady yaw rate");
+        Setup();ToSearch();position=new Vector3D(50,200,40);velocity=new Vector3D(-40,-10,25);Step(1);
+        Vector3D correction=ActualForce();
+        Assert(Math.Abs(correction.X)<=98400*0.9+0.1 && Math.Abs(correction.Z)<=98400*0.9+0.1,"drift correction respects weak lateral thrust capacity");
+        Assert(Math.Abs(correction.Y-mass*(9.81+10))<0.1,"vertical braking stays independent of saturated lateral demand");
+        Assert(Math.Abs((float)gyro.Values["Yaw"])<0.001,"pivot pauses while position and altitude settle");
+        Setup();ToSearch();var bank=MatrixD.CreateFromAxisAngle(Vector3D.Forward,6*Math.PI/180);
+        remote.Values["WorldMatrix"]=remoteMatrix*bank;
+        foreach(var e in engines)e.Values["WorldMatrix"]=(MatrixD)e.Values["WorldMatrix"]*bank;
+        position=new Vector3D(4,200,3);Step(1);
+        Assert(Phase()=="Search" && Math.Abs((float)gyro.Values["Yaw"])<0.001 && ((string)Field("note")).Contains("upright"),"scan pauses spin to restore a leaning missile");
+        Assert(Math.Abs(ActualForce().Y-mass*9.81)<0.1,"small attitude error still reserves exact gravity support");
+        Setup();ToSearch();engines[0].Values["MaxEffectiveThrust"]=100000f;Step(1);
+        Assert(Phase()=="Abort" && ((string)Field("note")).Contains("support weight"),"scan refuses insufficient vertical lift margin");
+        Setup();ToSearch();bank=MatrixD.CreateFromAxisAngle(Vector3D.Forward,Math.PI/2);
+        remote.Values["WorldMatrix"]=remoteMatrix*bank;
+        foreach(var e in engines)e.Values["WorldMatrix"]=(MatrixD)e.Values["WorldMatrix"]*bank;
+        Step(1);
+        Assert(Phase()=="Abort","weak side engines are never assumed capable of sideways hover");
+        Setup();ToSearch();var originalMatrices=engines.ConvertAll(e=>(MatrixD)e.Values["WorldMatrix"]);
+        position=new Vector3D(0,194,0);velocity=new Vector3D(2,-3,-1);
+        double worstAltitude=0;
+        // Numerical translation model: prescribed upright yaw, instantaneous thrust.
+        // This exercises real controller output, not game gyro/aerodynamic physics.
+        for(int i=0;i<750;i++)
+        {
+            var yaw=MatrixD.CreateFromAxisAngle(Vector3D.Up,(i+1)/6.0*Math.PI/60);
+            remote.Values["WorldMatrix"]=remoteMatrix*yaw;
+            for(int k=0;k<engines.Count;k++)engines[k].Values["WorldMatrix"]=originalMatrices[k]*yaw;
+            angularVelocity=Vector3D.Up*(Math.PI/60);Step(1);
+            double gust=i>=60 && i<90 ? -0.8 : 0;
+            Vector3D acceleration=ActualForce()/mass+new Vector3D(0.3,-9.81+gust,-0.2);
+            velocity+=acceleration/6;position+=velocity/6;
+            worstAltitude=Math.Max(worstAltitude,Math.Abs(position.Y-200));
+        }
+        Assert(Phase()=="Search" && worstAltitude<8 && Math.Abs(position.Y-200)<0.1,"125-second upright yaw model recovers altitude and vertical gust with weak sides");
+        Assert(new Vector3D(position.X,0,position.Z).Length()<2,"fixed-point controller rejects sustained lateral drift in numerical model");
+        Console.WriteLine("125s translation model: mass="+mass+"kg, main=480kN, sides=98.4kN; starts 6m low/descending 3m/s, peak altitude error="+worstAltitude.ToString("0.000")+"m, final altitude error="+Math.Abs(position.Y-200).ToString("0.000")+"m, final drift="+new Vector3D(position.X,0,position.Z).Length().ToString("0.000")+"m");
+        Console.WriteLine(checks+" controller checks passed; no Space Engineers physics simulation performed.");
     }
 }

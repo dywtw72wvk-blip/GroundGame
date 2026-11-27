@@ -2,7 +2,7 @@
 
 Space Engineers blueprints and programmable block scripts.
 
-- [Topdown missile prototype 0.3](docs/TOPDOWN-MISSILE.md): camera raycast search and tracking, centerline LOCK, inline battery, and exterior launch/cancel buttons with a ten-second timer. [Install bundle](dist/GroundGame_Topdown_Prototype.zip), [PB script](dist/TopdownMissile.cs), [blueprint](blueprints/%5BGG%5D%20Topdown%20Missile/bp.sbc). Compiled and checked; live flight remains untested.
+- [Topdown missile prototype 0.4](docs/TOPDOWN-MISSILE.md): fixed-position upright pivot search, altitude priority with weaker lateral thrusters, camera raycasts, centerline LOCK, and exterior launch/cancel buttons with a ten-second timer. [Install bundle](dist/GroundGame_Topdown_Prototype.zip), [PB script](dist/TopdownMissile.cs), [blueprint](blueprints/%5BGG%5D%20Topdown%20Missile/bp.sbc). Compiled and checked; live flight remains untested.
 
 ## [Dot] Drone [PAM+] · vertical mining
 
